@@ -101,6 +101,54 @@ function M.report(id, event, payload)
 	end
 end
 
+--- Rate limits per profile. They belong to the account behind the profile,
+--- so every instance of that profile shows the same numbers.
+---@type table<string, { five_hour?: crew.Limit, seven_day?: crew.Limit }>
+M.limits = {}
+
+--- Epoch seconds from a number or an ISO 8601 UTC string.
+---@param value number|string|nil
+---@return integer?
+function M.epoch(value)
+	if type(value) == "number" then
+		return math.floor(value)
+	end
+	if type(value) ~= "string" then
+		return nil
+	end
+	local y, mo, d, h, mi, s = value:match("^(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
+	if not y then
+		return nil
+	end
+	local local_time = os.time({ year = y, month = mo, day = d, hour = h, min = mi, sec = s, isdst = false })
+	return local_time + (os.time() - os.time(os.date("!*t") --[[@as osdateparam]]))
+end
+
+---@param limit? { pct?: number, resets_at?: number|string }
+---@return crew.Limit?
+local function normalize(limit)
+	if not (limit and limit.pct) then
+		return nil
+	end
+	return { pct = limit.pct, resets_at = M.epoch(limit.resets_at) }
+end
+
+--- Entry point for scripts/statusline.lua.
+---@param id integer
+---@param data { ctx?: number, five_hour?: table, seven_day?: table }
+function M.usage(id, data)
+	local ws = find(id)
+	if not ws then
+		return
+	end
+	ws.usage = ws.usage or {}
+	ws.usage.ctx = data.ctx or ws.usage.ctx
+	local limits = M.limits[ws.agent] or {}
+	limits.five_hour = normalize(data.five_hour) or limits.five_hour
+	limits.seven_day = normalize(data.seven_day) or limits.seven_day
+	M.limits[ws.agent] = limits
+end
+
 --- The user entered a workspace tab: done means "not seen yet", so clear it.
 function M.seen()
 	local ws = require("crew.workspace").current()

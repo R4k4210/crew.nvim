@@ -19,6 +19,21 @@ local workspace = require("crew.workspace")
 
 local M = {}
 
+--- Context from the instance, limits from its profile (shared by every
+--- instance of that profile), falling back to what the instance holds.
+---@param ws crew.Workspace
+---@return crew.Usage?
+local function usage_of(ws)
+	local own = ws.usage or {}
+	local shared = require("crew.state").limits[ws.agent] or {}
+	local usage = {
+		ctx = own.ctx,
+		five_hour = shared.five_hour or own.five_hour,
+		seven_day = shared.seven_day or own.seven_day,
+	}
+	return next(usage) and usage or nil
+end
+
 --- Workspaces in slot order, editor first. Empty when no agent is open,
 --- so adapters render nothing until there is something to switch to.
 ---@return crew.Entry[]
@@ -36,7 +51,7 @@ function M.list()
 				agent = ws.agent,
 				state = ws.state,
 				name = ws.name,
-				usage = ws.usage,
+				usage = usage_of(ws),
 				current = ws == current,
 			}
 		end

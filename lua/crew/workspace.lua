@@ -162,8 +162,13 @@ function M.open(name)
 		job = 0,
 	}
 	-- CREW_ID tells the hooks who they are; Neovim adds $NVIM on its own.
+	-- CREW_STATUSLINE is the user's own statusLine, chained by crew's.
+	local hooks = require("crew.hooks")
 	local env = vim.tbl_extend("force", agent.env or {}, { CREW_ID = tostring(ws.id) })
-	ws.job = vim.fn.jobstart(require("crew.hooks").command(agent.cmd, agent.hooks), {
+	if agent.hooks ~= false then
+		env.CREW_STATUSLINE = hooks.original_statusline(agent.cmd, agent.env or {})
+	end
+	ws.job = vim.fn.jobstart(hooks.command(agent.cmd, agent.hooks), {
 		term = true,
 		env = env,
 		on_exit = function()

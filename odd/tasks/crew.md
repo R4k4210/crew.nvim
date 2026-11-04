@@ -97,6 +97,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: README (English) with mockup screenshots added; mockup overlap fixed. A work project name in the first mockup commit was rewritten out of history with `filter-branch`, all 17 commits re-signed (`G`), backup and `refs/original` pruned. Public repo https://github.com/R4k4210/crew.nvim created by the user, `main` and `feat/workspaces` pushed, GitHub reports 17 of 17 commits verified.
 
+- 2026-11-04: L7 written. crew injects a `statusLine` (scripts/statusline.lua) through the same `--settings` merge; it forwards `context_window.used_percentage` and `rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at` as epoch or ISO) to `crew.state.usage` over `$NVIM`, then runs the user original statusLine from `$CREW_STATUSLINE` (found in the inline `--settings`, else `$CLAUDE_CONFIG_DIR/settings.json`, else `~/.claude/settings.json`) with the same stdin. Context is per instance, limits per profile (`state.limits`). Route: inline, teaching session. Headless 13 of 13 plus all suites; end to end with the user real statusline script, output identical byte for byte, 20 ms per run. Pending: check with real Claude that the `--settings` statusLine wins over settings.json.
+
 ## Next step
 
-L7 usage meters (statusLine script forwards context and rate limits), then the picker columns fill in.
+User checks L7 with real Claude (picker columns fill, own status bar unchanged), then L8 header in agent tabs.
