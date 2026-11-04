@@ -70,7 +70,52 @@ T["closing the current agent goes to the editor"] = function()
 	eq(child.lua_get("{ ws.workspaces[1].slot, ws.workspaces[2].slot, ws.workspaces[3] == nil }"), { 1, 2, true })
 end
 
+T["close_all"] = MiniTest.new_set()
+
+T["close_all"]["closes every agent and lands in the editor"] = function()
+	setup()
+	open(3)
+	child.lua("ws.jump(2); ws.close_all()")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("vim.api.nvim_get_current_tabpage() == home"), true)
+	eq(child.lua_get("#vim.api.nvim_list_tabpages()"), 1)
+	eq(child.lua_get([[#vim.tbl_filter(function(b) return vim.bo[b].buftype == "terminal" end, vim.api.nvim_list_bufs())]]), 0)
+end
+
+T["close_all"]["is silent and safe with no agents"] = function()
+	setup()
+	child.lua([[
+		notified = false
+		vim.notify = function() notified = true end
+		ws.close_all()
+	]])
+	eq(child.lua_get("notified"), false)
+	eq(child.lua_get("vim.api.nvim_get_current_tabpage() == home"), true)
+end
+
 T[":Crew"] = MiniTest.new_set()
+
+T[":Crew"]["close all closes every agent"] = function()
+	setup()
+	open(3)
+	child.lua('vim.cmd("Crew close all")')
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("vim.api.nvim_get_current_tabpage() == home"), true)
+end
+
+T[":Crew"]["close 2 closes only agent 2"] = function()
+	setup()
+	open(3)
+	child.lua("ws.workspaces[3].name = 'third'")
+	child.lua('vim.cmd("Crew close 2")')
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 2)
+	eq(child.lua_get("ws.workspaces[2].name"), "third")
+end
+
+T[":Crew"]["close completes all"] = function()
+	setup()
+	eq(child.lua_get('vim.fn.getcompletion("Crew close ", "cmdline")'), { "all" })
+end
 
 T[":Crew"]["jump 12 goes to agent 12"] = function()
 	setup()

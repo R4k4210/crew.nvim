@@ -37,6 +37,21 @@ T["<leader>ax is crew-exit"] = function()
 	eq(desc("n", "<leader>ax"), "crew-exit")
 end
 
+T["<leader>aX is crew-exit-all"] = function()
+	setup()
+	eq(desc("n", "<leader>aX"), "crew-exit-all")
+end
+
+T["<leader>aX closes every agent"] = function()
+	setup()
+	child.lua([[
+		ws = require("crew.workspace")
+		ws.open("sh"); ws.open("sh")
+		vim.fn.maparg("<leader>aX", "n", false, true).callback()
+	]])
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+end
+
 T["<leader> maps stay out of terminal mode"] = function()
 	setup()
 	eq(mapped("t", "<leader>an"), false)

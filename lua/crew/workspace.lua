@@ -236,6 +236,15 @@ function M.close(slot)
 	remove(ws)
 end
 
+--- Close every agent and land in the editor. Silent, even with none open.
+function M.close_all()
+	-- Leave first, so no agent tab is current while the tabs go away.
+	M.editor()
+	for _, ws in ipairs(M.ordered()) do
+		remove(ws)
+	end
+end
+
 --- Name a workspace, or the current one when no slot is given.
 --- An empty or nil name clears it.
 ---@param name? string

@@ -28,6 +28,7 @@
 ---@field editor? string|false Go to the editor, in normal and terminal mode. Off by default
 ---@field new? string|false Open a new agent (normal mode), asks which one when there are several profiles
 ---@field close? string|false Close the current agent (normal mode)
+---@field close_all? string|false Close every agent and go to the editor (normal mode)
 ---@field pick? string|false Pick an open instance from a list with names and usage (normal mode)
 ---@field rename? string|false Name the current instance (normal mode)
 ---@field send_file? string|false Send @path of the current file to the agent (normal mode)
@@ -51,6 +52,7 @@ M.defaults = {
 		editor = false,
 		new = "<leader>an",
 		close = "<leader>ax",
+		close_all = "<leader>aX",
 		pick = "<leader>ap",
 		rename = "<leader>ai",
 		send_file = "<leader>af",

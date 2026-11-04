@@ -38,6 +38,9 @@ local subcommands = {
 		require("crew.workspace").rename(table.concat(args, " "))
 	end,
 	close = function(args)
+		if args[1] == "all" then
+			return require("crew.workspace").close_all()
+		end
 		require("crew.workspace").close(tonumber(args[1]))
 	end,
 }
@@ -79,6 +82,9 @@ function M.complete(arglead, cmdline)
 		local agents = vim.tbl_keys(require("crew.config").options.agents)
 		table.sort(agents)
 		return starting_with(agents, arglead)
+	end
+	if words[2] == "close" and position == 3 then
+		return starting_with({ "all" }, arglead)
 	end
 	return {}
 end
