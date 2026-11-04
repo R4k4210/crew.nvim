@@ -55,6 +55,11 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - [x] **L9 Quality and publish.** Tests with `mini.test`, `:checkhealth crew`, `doc/crew.txt`, README, GitHub repo `R4k4210/crew.nvim` with topics.
   - Accept: tests pass in CI and the plugin installs from `"R4k4210/crew.nvim"`.
+- [ ] **W1 Agents from 1, editor apart.** Agents number from 1 (`<C-1>` is the first agent), the editor is no longer a numbered slot. `<C-,>` already reaches the editor from any agent, so `keys.editor` is an optional key, `false` by default. Touches compact, tab order, jump, pills, picker, send and tests.
+- [ ] **W2 Editor pill.** Own highlight `CrewPillEditor` and `opts.editor.label` (for example "E", "[E]", "Editor" or an icon).
+- [ ] **W3 No slot limit, sliding window.** Any number of agents; direct keys stay `<C-1>`..`<C-9>`, the rest through the picker or `:Crew jump N`. Pills show a window of `opts.pills.max` (default 5) around the current agent with `‹N` and `N›` counting the hidden ones; each overflow marker takes the most urgent state it hides (ask > done > work), so a hidden agent asking still shows and blinks.
+- [ ] **W4 Mockup, README and help** for W1 to W3, then push.
+
 - [ ] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
   - Accept: daily work runs from one terminal for a full day.
 
