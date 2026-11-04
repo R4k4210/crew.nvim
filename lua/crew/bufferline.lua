@@ -57,7 +57,8 @@ function M.right()
 		if i > 1 then
 			list[#list + 1] = { text = " " } -- gap, bufferline paints it with the fill color
 		end
-		list[#list + 1] = { text = pill.text, link = pill.hl }
+		-- Markers are bare arrows on the fill, pills keep their boxes.
+		list[#list + 1] = { text = pill.text, link = pill.kind == "more" and on_fill(pill.hl) or pill.hl }
 	end
 	return list
 end

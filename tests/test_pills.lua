@@ -105,7 +105,7 @@ end
 
 T["window"]["shows max agents around the current one"] = function()
 	fifteen(10)
-	eq(child.lua_get("texts()"), { " E ", " ‹7 ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " 3› " })
+	eq(child.lua_get("texts()"), { " E ", " ‹ ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " › " })
 end
 
 T["window"]["pills have a kind"] = function()
@@ -117,12 +117,12 @@ end
 
 T["window"]["no left marker at the start"] = function()
 	fifteen(1)
-	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 10› " })
+	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " › " })
 end
 
 T["window"]["no right marker at the end"] = function()
 	fifteen(15)
-	eq(child.lua_get("texts()"), { " E ", " ‹10 ", " 11 ", " 12 ", " 13 ", " 14 ", " 15 " })
+	eq(child.lua_get("texts()"), { " E ", " ‹ ", " 11 ", " 12 ", " 13 ", " 14 ", " 15 " })
 end
 
 T["window"]["no markers when every agent fits"] = function()
@@ -133,19 +133,19 @@ end
 
 T["window"]["respects pills.max"] = function()
 	fifteen(10, { pills = { max = 3 } })
-	eq(child.lua_get("texts()"), { " E ", " ‹8 ", " 9 ", " 10 ", " 11 ", " 4› " })
+	eq(child.lua_get("texts()"), { " E ", " ‹ ", " 9 ", " 10 ", " 11 ", " › " })
 end
 
 T["window"]["in the editor it centers on the last visited agent"] = function()
 	fifteen(10)
 	child.lua("ws.editor()")
-	eq(child.lua_get("texts()"), { " E ", " ‹7 ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " 3› " })
+	eq(child.lua_get("texts()"), { " E ", " ‹ ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " › " })
 end
 
 T["window"]["in the editor with no last agent it starts from agent 1"] = function()
 	fifteen(10)
 	child.lua("ws.editor(); ws.last = nil")
-	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 10› " })
+	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " › " })
 end
 
 T["window"]["a marker with nothing to report uses CrewPillMore"] = function()
@@ -154,11 +154,12 @@ T["window"]["a marker with nothing to report uses CrewPillMore"] = function()
 	eq(child.lua_get('vim.api.nvim_get_hl(0, { name = "CrewPillMore" }).link'), "Comment")
 end
 
-T["window"]["a hidden ask colors its marker and blinks"] = function()
+T["window"]["a hidden ask colors its marker and blinks between orange and dim"] = function()
 	fifteen(10)
 	child.lua('ws.workspaces[14].state = "done"; ws.workspaces[15].state = "ask"')
 	eq(child.lua_get("(function() state.blink = false; return last_hl() end)()"), "CrewPillAsk")
-	eq(child.lua_get("(function() state.blink = true; return last_hl() end)()"), "CrewPillAskBlink")
+	-- CrewPillAskBlink has a background, a marker is only an arrow.
+	eq(child.lua_get("(function() state.blink = true; return last_hl() end)()"), "CrewPillMore")
 end
 
 T["window"]["a hidden ask keeps the blink timer running"] = function()
@@ -228,6 +229,49 @@ end
 T["bufferline right"]["puts gaps between pills"] = function()
 	open_two()
 	eq(child.lua_get('#require("crew.bufferline").right()'), 5)
+end
+
+T["bufferline right"]["markers sit on the bufferline fill background"] = function()
+	fifteen(10)
+	child.lua([[
+		vim.api.nvim_set_hl(0, "BufferLineFill", { bg = 0x070707 })
+		vim.api.nvim_set_hl(0, "CrewPillMore", { fg = 0x555555, bg = 0x333333 })
+		ws.workspaces[15].state = "ask"
+		state.blink = false
+	]])
+	local bgs = child.lua_get([[(function()
+		local bgs = {}
+		for _, it in ipairs(require("crew.bufferline").right()) do
+			if it.text == " ‹ " or it.text == " › " then
+				bgs[#bgs + 1] = vim.api.nvim_get_hl(0, { name = it.link, link = false }).bg or -1
+			end
+		end
+		return bgs
+	end)()]])
+	eq(bgs, { 0x070707, 0x070707 })
+end
+
+T["bufferline right"]["agent pills keep their linked groups"] = function()
+	open_two()
+	eq(child.lua_get('require("crew.bufferline").right()[5].link'), "CrewPillCurrent")
+end
+
+T["lualine marker sits on the section background"] = function()
+	fifteen(10)
+	child.lua([[
+		require("lualine").setup({})
+		vim.api.nvim_set_hl(0, "CrewPillMore", { fg = 0x555555, bg = 0x333333 })
+	]])
+	local out = child.lua_get([[(function()
+		local Comp = require("lualine.components.crew")
+		local comp = Comp({ self = { section = "c" }, component_separators = "", section_separators = "" })
+		section = comp:get_default_hl():match("#(.-)#")
+		return comp:update_status()
+	end)()]])
+	local group = out:match("%%#([%w_]+)# › ")
+	H.neq(group, nil)
+	eq(child.lua_get("vim.api.nvim_get_hl(0, { name = ..., link = false }).bg", { group }), child.lua_get("vim.api.nvim_get_hl(0, { name = section, link = false }).bg"))
+	eq(child.lua_get("vim.api.nvim_get_hl(0, { name = ..., link = false }).fg", { group }), 0x555555)
 end
 
 T["lualine component"] = function()

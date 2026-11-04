@@ -76,19 +76,22 @@ end
 -- Most urgent first: a marker shows the state that needs you soonest.
 local URGENCY = { ask = 3, done = 2, work = 1 }
 
---- Marker for agents hidden on one side of the window, colored by the most
---- urgent state among them so a waiting agent is never out of sight.
+--- Marker for agents hidden on one side of the window: a bare arrow colored
+--- by the most urgent state among them, so a waiting agent is never out of
+--- sight. Markers have no box, so the ask blink alternates with the dim
+--- CrewPillMore instead of CrewPillAskBlink, which brings a background.
 ---@param hidden crew.Entry[]
----@param fmt string
+---@param text string
 ---@return crew.Pill
-local function marker(hidden, fmt)
+local function marker(hidden, text)
 	local top
 	for _, e in ipairs(hidden) do
 		if e.state and URGENCY[e.state] > (top and URGENCY[top] or 0) then
 			top = e.state
 		end
 	end
-	return { kind = "more", text = fmt:format(#hidden), hl = top and state_hl(top) or "CrewPillMore" }
+	local blinking = top == "ask" and require("crew.state").blink
+	return { kind = "more", text = text, hl = (top and not blinking) and STATE_HL[top] or "CrewPillMore" }
 end
 
 --- First agent of the window: max agents around the current one (in the
@@ -135,7 +138,7 @@ function M.pills()
 		last = first + max - 1
 	end
 	if first > 1 then
-		pills[#pills + 1] = marker(vim.list_slice(entries, 1, first - 1), " ‹%d ")
+		pills[#pills + 1] = marker(vim.list_slice(entries, 1, first - 1), " ‹ ")
 	end
 	for i = first, last do
 		local entry = entries[i]
@@ -148,7 +151,7 @@ function M.pills()
 		}
 	end
 	if last < #entries then
-		pills[#pills + 1] = marker(vim.list_slice(entries, last + 1, #entries), " %d› ")
+		pills[#pills + 1] = marker(vim.list_slice(entries, last + 1, #entries), " › ")
 	end
 	return pills
 end
