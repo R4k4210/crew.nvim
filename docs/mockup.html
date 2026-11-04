@@ -3,174 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nvim Agent Workspaces</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<title>crew.nvim mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: one faux Neovim window as the hero, keycaps above it, three short notes below.
-   Single dark look on purpose: it mirrors the OneDark Deep palette from core/colors.lua. */
+/* The faux Neovim only uses what a terminal grid can draw: one monospace cell
+   per character with its own fg, bg and bold, floats with rounded borders, and
+   no radius, padding or CSS animation inside statusline and tabline. Sizes are
+   in ch so every element lands on whole cells. Palette: OneDark Deep. */
 :root {
   color-scheme: dark;
-  --bg: #0d1117;
-  --bg-dark: #080b0f;
-  --bg-light: #151b23;
-  --bg-lighter: #1c242e;
-  --bg-lightest: #242d39;
-  --fg: #93a4c3;
-  --fg-dark: #6c7d9c;
-  --fg-light: #b4c5e4;
-  --red: #f65866;
-  --green: #8bcd5b;
-  --yellow: #efbd5d;
-  --blue: #41a7fc;
-  --purple: #c75ae8;
-  --cyan: #34bfd0;
-  --orange: #dd9046;
-  --darkblue: #102b40;
-  --cursor: #ff4000;
-  --page: #06080b;
+  --bg: #0d1117; --bg-dark: #080b0f; --bg-light: #151b23; --bg-lighter: #1c242e; --bg-lightest: #242d39;
+  --fg: #93a4c3; --fg-dark: #6c7d9c; --fg-light: #b4c5e4;
+  --red: #f65866; --green: #8bcd5b; --yellow: #efbd5d; --blue: #41a7fc; --purple: #c75ae8; --cyan: #34bfd0; --orange: #dd9046;
+  --cursor: #ff4000; --page: #06080b;
   --font-mono: "JetBrains Mono", "MesloLGS NF", ui-monospace, Menlo, monospace;
   --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
 body {
-  background: var(--page);
-  color: var(--fg);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 40px 64px;
+  margin: 0; background: var(--page); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding: 40px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
 }
 .wrap { max-width: 1180px; margin-inline: auto; display: grid; gap: 28px; }
-
 header { display: grid; gap: 6px; }
 .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); }
-h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(--fg-light); text-wrap: balance; letter-spacing: -.01em; }
-.lede { margin: 0; max-width: 68ch; color: var(--fg); }
+h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(--fg-light); text-wrap: balance; }
+.lede { margin: 0; max-width: 72ch; }
 
-/* Keycap controls */
-.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--fg-dark); }
+/* Keycaps */
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; color: var(--fg-dark); }
+.ctl { display: inline-flex; gap: 6px; align-items: center; }
 .key {
-  font-family: var(--font-mono); font-size: 12px; color: var(--fg-light);
-  background: var(--bg-lighter); border: 1px solid var(--bg-lightest); border-bottom-width: 3px;
-  border-radius: 6px; padding: 3px 8px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px; color: var(--fg-light); cursor: pointer;
+  background: var(--bg-lighter); border: 1px solid var(--bg-lightest); border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px;
 }
 .key:hover { border-color: var(--blue); }
-.key:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.ctl { display: inline-flex; gap: 6px; align-items: center; }
+.key:focus-visible, .nvim:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
-/* Faux Neovim window */
+/* Neovim grid */
 .stage { overflow-x: auto; border-radius: 12px; }
 .nvim {
-  min-width: 920px; height: 600px; position: relative;
-  background: var(--bg); border: 1px solid var(--bg-lighter); border-radius: 12px; overflow: hidden;
-  font-family: var(--font-mono); font-size: 12.5px; line-height: 20px;
-  display: grid; grid-template-rows: 26px 1fr 22px 20px;
-  box-shadow: 0 30px 80px -30px rgba(65,167,252,.18);
+  min-width: 960px; height: 600px; position: relative; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--bg-lighter); border-radius: 12px;
+  font-family: var(--font-mono); font-size: 13px; line-height: 20px; white-space: pre;
+  display: grid; grid-template-rows: 20px 1fr 20px 20px;
 }
-.nvim:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.row { display: flex; overflow: hidden; }
+.fill { flex: 1; }
+.c-dim { color: var(--fg-dark); } .c-hi { color: var(--fg-light); } .c-blue { color: var(--blue); } .c-green { color: var(--green); }
+.c-yellow { color: var(--yellow); } .c-orange { color: var(--orange); } .c-red { color: var(--red); } .c-purple { color: var(--purple); } .c-cyan { color: var(--cyan); }
+.b { font-weight: 700; }
 
-/* Tabline (bufferline, slant) */
-.tabline { display: flex; align-items: stretch; background: var(--bg-dark); overflow: hidden; }
-.buf {
-  display: flex; align-items: center; gap: 6px; padding: 0 22px 0 16px; margin-right: -10px;
-  background: var(--bg-light); color: var(--fg-dark);
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-}
-.buf.on { background: var(--bg); color: var(--fg-light); }
-.buf .ic { color: var(--blue); }
-.buf .mod { color: var(--green); }
-.tab-agent { display: flex; align-items: center; gap: 10px; padding: 0 14px; color: var(--fg-dark); width: 100%; }
-.tab-agent b { color: var(--fg-light); font-weight: 600; }
-.tab-agent .sp { flex: 1; }
-.tab-agent .cwd { color: var(--fg-dark); }
-.meter { display: inline-flex; gap: 6px; align-items: center; padding-left: 14px; }
-.meter .ml { color: var(--fg-dark); }
-.meter .cells { letter-spacing: -1px; }
-.meter .mv { color: var(--fg-light); min-width: 3.5ch; text-align: right; font-variant-numeric: tabular-nums; }
-.meter .mr { color: var(--fg-dark); }
-.lv-g { color: var(--green); } .lv-y { color: var(--yellow); } .lv-r { color: var(--red); } .lv-off { color: var(--bg-lightest); }
+/* Tabline: bufferline buffers on the left, crew pills from custom_areas.right */
+.tabline { background: var(--bg-dark); }
+.bufname { background: var(--bg-light); color: var(--fg-dark); }
+.bufname.on { background: var(--bg); color: var(--fg-light); }
+.slant { color: var(--bg-dark); }
+
+/* Pills: plain highlighted cells, " 2 ? " */
+.pill { color: var(--fg-dark); background: var(--bg-lighter); cursor: pointer; border: 0; font: inherit; padding: 0; }
+.pill.cur { color: var(--bg); background: var(--blue); font-weight: 700; }
+.pill.work { color: var(--yellow); }
+.pill.done { color: var(--green); }
+.pill.ask { color: var(--orange); }
+.pill.ask.blink { color: var(--bg); background: var(--orange); }
+.gap { background: var(--bg-dark); }
+.status .gap { background: var(--bg); }
 
 /* Workspaces */
 .main { position: relative; overflow: hidden; }
-.ws { position: absolute; inset: 0; display: none; }
-.ws.on { display: grid; animation: slide .18s ease-out; }
-@keyframes slide { from { opacity: .4; transform: translateX(var(--dir, 12px)); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .ws.on { animation: none; } }
-
-.editor { grid-template-columns: 1fr 34ch; }
-.code { padding: 6px 0; overflow: hidden; }
-.ln { display: grid; grid-template-columns: 5ch 1fr; white-space: pre; }
-.ln .n { color: var(--bg-lightest); text-align: right; padding-right: 2ch; }
+.ws { position: absolute; inset: 0; display: none; padding: 0; }
+.ws.on { display: block; }
+.editor { display: grid; grid-template-columns: 1fr 32ch; }
+.code { padding-top: 4px; overflow: hidden; }
 .ln.cur { background: var(--bg-light); }
-.ln.cur .n { color: var(--yellow); }
+.tree { background: var(--bg-dark); border-left: 1px solid var(--bg-lighter); padding: 4px 1ch; overflow: hidden; }
+.tree .sel { background: var(--bg-lighter); }
+.term { padding: 0 2ch; color: var(--fg-light); }
 .cursor { background: var(--cursor); color: var(--bg); }
-.k { color: var(--purple); } .s { color: var(--green); } .f { color: var(--blue); }
-.c { color: var(--fg-dark); font-style: italic; } .v { color: var(--red); } .num { color: var(--orange); } .t { color: var(--cyan); }
 
-.tree { border-left: 1px solid var(--bg-lighter); background: var(--bg-dark); padding: 6px 10px; overflow: hidden; white-space: pre; color: var(--fg); }
-.tree .d { color: var(--blue); }
-.tree .sel { background: var(--bg-lighter); color: var(--fg-light); display: block; margin-inline: -10px; padding-inline: 10px; }
-.tree .g { color: var(--orange); }
+/* Statusline (lualine, crew component in the middle) */
+.status { background: var(--bg); border-top: 1px solid var(--bg-lighter); }
+.cmdline { padding: 0 1ch; color: var(--fg-dark); }
 
-.term { padding: 12px 18px; overflow: hidden; white-space: pre-wrap; color: var(--fg-light); grid-template-rows: auto 1fr auto; }
-.term .prompt-box { border: 1px solid var(--bg-lightest); border-radius: 6px; padding: 4px 10px; color: var(--fg-dark); }
-.term .me { color: var(--fg-dark); }
-.term .dot-y { color: var(--yellow); } .term .dot-g { color: var(--green); } .term .dot-o { color: var(--orange); } .term .dot-b { color: var(--blue); }
-.term .ask { border: 1px solid var(--orange); border-radius: 6px; padding: 8px 12px; margin-top: 8px; }
-.term .opt-on { color: var(--blue); }
-.term .muted { color: var(--fg-dark); }
-
-/* Statusline (evil-lualine style + workspace pills) */
-.status { display: flex; align-items: center; background: var(--bg); border-top: 1px solid var(--bg-lighter); white-space: nowrap; overflow: hidden; }
-.status .bar { color: var(--blue); }
-.status .seg { padding: 0 8px; }
-.status .mode { color: var(--green); }
-.status .file { color: var(--purple); font-weight: 700; }
-.status .dim { color: var(--fg-dark); }
-.status .fill { flex: 1; }
-.pills { display: flex; gap: 4px; align-items: center; }
-.pill {
-  display: inline-flex; gap: 4px; align-items: center; justify-content: center; height: 18px; min-width: 4ch; padding: 0 6px; border-radius: 4px;
-  background: var(--bg-lighter); color: var(--fg-dark); cursor: pointer; border: 0; font: inherit; font-size: 11.5px;
+/* Floats: snacks picker, input and notifier */
+.scrim { position: absolute; inset: 0; background: rgba(8,11,15,.55); z-index: 8; }
+.float {
+  position: absolute; z-index: 9; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  background: var(--bg-dark); border: 1px solid var(--blue); border-radius: 8px;
 }
-.pill .num { color: inherit; font-weight: 700; }
-.pill.on { background: var(--blue); color: var(--bg); }
-.pill.on .st { color: var(--bg); }
-.pill.alert { animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { background: #3a2a14; } }
-@media (prefers-reduced-motion: reduce) { .pill.alert { animation: none; background: #3a2a14; } }
-.st-work { color: var(--yellow); } .st-ask { color: var(--orange); } .st-done { color: var(--green); } .st-idle { color: var(--fg-dark); } .st-code { color: var(--blue); }
-.cmdline { padding: 0 8px; color: var(--fg-dark); background: var(--bg); }
-
-/* Notifier toast */
-.toast {
-  position: absolute; top: 34px; right: 12px; width: 300px; z-index: 5;
-  background: var(--bg-light); border: 1px solid var(--orange); border-radius: 8px; padding: 8px 12px;
-  color: var(--fg-light); font-size: 12px;
-}
-.toast .tt { color: var(--orange); font-weight: 700; }
-
-/* Picker float */
-.scrim { position: absolute; inset: 0; background: rgba(8,11,15,.6); z-index: 8; }
-.picker {
-  position: absolute; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 760px; height: 360px; display: grid; grid-template-columns: 1fr 1fr;
-  background: var(--bg-dark); border: 1px solid var(--blue); border-radius: 10px; overflow: hidden;
-}
-.picker .title { position: absolute; top: -1px; left: 18px; transform: translateY(-50%); background: var(--bg-dark); color: var(--blue); padding: 0 6px; font-weight: 700; }
-.plist { border-right: 1px solid var(--bg-lighter); padding: 12px 0; display: grid; align-content: start; }
-.pin { padding: 0 12px 8px; color: var(--fg-dark); border-bottom: 1px solid var(--bg-lighter); margin-bottom: 6px; }
-.pin span { color: var(--fg-light); }
-.prow { display: grid; grid-template-columns: 3ch 2ch 1fr auto; gap: 6px; padding: 2px 12px; color: var(--fg); cursor: pointer; }
-.prow.sel { background: var(--bg-lighter); color: var(--fg-light); }
-.prow .meta { color: var(--fg-dark); }
-.pprev { padding: 12px 14px; white-space: pre-wrap; color: var(--fg); overflow: hidden; font-size: 12px; }
-.pprev .h { color: var(--fg-light); font-weight: 700; }
-.phelp { position: absolute; bottom: 8px; left: 12px; color: var(--fg-dark); font-size: 11px; }
+.float .title { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); background: var(--bg-dark); color: var(--blue); font-weight: 700; padding: 0 1ch; }
+.float .input { padding: 4px 1ch; border-bottom: 1px solid var(--bg-lighter); }
+.float .opt { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; color: var(--fg); padding: 0 1ch; cursor: pointer; white-space: pre; }
+.float .opt.sel { background: var(--bg-lighter); color: var(--fg-light); }
+.float .help { padding: 2px 1ch; color: var(--fg-dark); border-top: 1px solid var(--bg-lighter); font-size: 12px; }
+.toast { position: absolute; z-index: 5; top: 26px; right: 1ch; border: 1px solid var(--orange); border-radius: 8px; background: var(--bg-light); padding: 2px 1ch; }
 
 /* Notes */
 .notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; }
@@ -178,70 +107,66 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 .note h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--fg-light); }
 .note p { margin: 0 0 8px; }
 .note code { font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan); }
-.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13.5px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13.5px; }
 .keys code { white-space: nowrap; }
-.hint { font-size: 12.5px; color: var(--fg-dark); }
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">concept · nvim plugin</div>
+    <div class="eyebrow">crew.nvim · mockup within Neovim limits</div>
     <h1>Agents as workspaces, not splits</h1>
-    <p class="lede">Each agent lives in its own full window workspace, the way Hyprland or AeroSpace treat desktops. Workspace 1 is your editor with neo-tree and bufferline untouched. Workspaces 2 to 9 are agents. The pills in lualine tell you which one is working, which one is waiting on you, and which one is done.</p>
+    <p class="lede">Each agent instance lives in its own tab. Pills show only the slot and a state icon, in bufferline and in lualine. Names, profiles and usage live in the picker, where there is room for them.</p>
   </header>
 
   <div class="controls" aria-label="Simulated keys">
-    <span class="ctl"><span class="key" aria-hidden="true">C-Space</span> then</span>
-    <span class="ctl"><button class="key" data-act="ws" data-n="1">1</button><button class="key" data-act="ws" data-n="2">2</button><button class="key" data-act="ws" data-n="3">3</button><button class="key" data-act="ws" data-n="4">4</button> jump</span>
-    <span class="ctl"><button class="key" data-act="toggle">Space</button> editor ⇄ last agent</span>
-    <span class="ctl"><button class="key" data-act="picker">p</button> picker</span>
-    <span class="ctl"><button class="key" data-act="new">n</button> new agent</span>
-    <span class="hint">In the mockup, click the window and press the second key alone (Tab also toggles).</span>
+    <span class="ctl"><button class="key" data-act="ws" data-n="1">C-1</button><button class="key" data-act="ws" data-n="2">C-2</button><button class="key" data-act="ws" data-n="3">C-3</button><button class="key" data-act="ws" data-n="4">C-4</button> jump</span>
+    <span class="ctl"><button class="key" data-act="toggle">C-,</button> editor ⇄ last agent</span>
+    <span class="ctl"><button class="key" data-act="pick">␣ap</button> pick instance</span>
+    <span class="ctl"><button class="key" data-act="new">␣an</button> new from profile</span>
+    <span class="ctl"><button class="key" data-act="rename">␣ai</button> name this instance</span>
+    <span class="ctl"><button class="key" data-act="close">␣ax</button> close</span>
   </div>
 
   <div class="stage">
-    <div class="nvim" id="nvim" tabindex="0" aria-label="Neovim mockup">
-      <div class="tabline" id="tabline"></div>
-      <div class="main" id="main">
-        <div class="ws editor" id="ws-1">
-          <div class="code" id="code"></div>
-          <div class="tree" id="tree"></div>
-        </div>
+    <div class="nvim" id="nvim" tabindex="0" aria-label="Neovim mockup, focus it and use digits, Tab, p, n, i, x">
+      <div class="row tabline" id="tabline"></div>
+      <div class="main">
+        <div class="ws editor" id="ws-1"><div class="code" id="code"></div><div class="tree" id="tree"></div></div>
         <div class="ws term" id="ws-agent"></div>
         <div class="toast" id="toast" hidden></div>
       </div>
-      <div class="status" id="status"></div>
+      <div class="row status" id="status"></div>
       <div class="cmdline" id="cmdline"></div>
       <div class="scrim" id="scrim" hidden></div>
-      <div class="picker" id="picker" hidden></div>
+      <div class="float" id="float" hidden></div>
     </div>
   </div>
 
   <section class="notes">
     <div class="note">
-      <h2>How it is built</h2>
-      <p>Every workspace is a Neovim <code>tabpage</code>. Tab 1 keeps your layout. Each agent tab holds one terminal window that fills the screen, so Claude renders at full size and nothing fights for columns.</p>
-      <p>Bufferline turns into a context header inside agent tabs, showing profile, cwd and branch, while lualine stays the same everywhere and gains the workspace pills.</p>
+      <h2>Two pickers with no file preview</h2>
+      <p>Crew opens its own snacks pickers with <code>layout = { preview = false }</code>, so your global layout keeps its preview for files and grep. Without snacks it falls back to <code>vim.ui.select</code>.</p>
+      <p><code>␣an</code> lists profiles from <code>opts.agents</code> (claude, claude-work, codex, as many as you define). <code>␣ap</code> lists open instances in aligned columns: slot, profile, name, then context, 5 hour and weekly usage with their resets.</p>
     </div>
     <div class="note">
-      <h2>Knowing who needs you</h2>
-      <p>Claude Code hooks (<code>Notification</code>, <code>Stop</code>, <code>UserPromptSubmit</code>) call <code>nvim --server $NVIM --remote-expr</code> to report state. The plugin colors the pill and pulses it when an agent waits on a permission prompt.</p>
-      <p>The same state could also be pushed to sketchybar, so the Mac bar shows it when Neovim is in the background.</p>
+      <h2>Naming an instance</h2>
+      <p><code>␣ai</code> opens a one line input for the current instance. The name only shows in the picker and the agent tab header, never in the pills, so it can be as long as you want.</p>
+      <p>Usage cells show <code>–</code> when an agent does not report them yet, like a Claude session before its first answer or a CLI such as codex that sends no limits.</p>
     </div>
     <div class="note">
-      <h2>Usage meters</h2>
-      <p>Inside an agent workspace the header shows three bars. Context comes from that session, while the 5 hour and weekly limits belong to the profile, so <code>claude</code> and <code>claude-work</code> each show their own account.</p>
-      <p>Claude Code already sends <code>context_window.used_percentage</code> and <code>rate_limits.five_hour</code> / <code>seven_day</code> to its statusLine script. Ours just forwards that JSON to Neovim through <code>$NVIM</code>.</p>
+      <h2>What Neovim can draw</h2>
+      <p>Everything here is a grid of cells with a color, a background and bold. Floats get rounded borders, but statusline pills are flat blocks, and the ask pill blinks by swapping its highlight on a timer.</p>
     </div>
     <div class="note">
-      <h2>Proposed keys</h2>
-      <p>One prefix that works in normal and terminal mode, like tmux. Letters such as <code>jk</code> stay free inside the terminal.</p>
+      <h2>Keys</h2>
       <div class="keys">
-        <code>&lt;C-Space&gt;&lt;Space&gt;</code><span>editor ⇄ last agent</span>
-        <code>&lt;C-Space&gt;1..9</code><span>jump to workspace</span>
-        <code>&lt;C-Space&gt;p</code><span>picker with live preview</span>
-        <code>&lt;C-Space&gt;n</code><span>new agent (claude, claude-work)</span>
-        <code>&lt;C-Space&gt;x</code><span>close agent workspace</span>
+        <code>&lt;C-,&gt;</code><span>editor ⇄ last agent (normal and terminal)</span>
+        <code>&lt;C-1..9&gt;</code><span>jump to slot, silent when empty</span>
+        <code>&lt;leader&gt;ap</code><span>pick an open instance</span>
+        <code>&lt;leader&gt;an</code><span>new instance from a profile</span>
+        <code>&lt;leader&gt;ai</code><span>name the current instance</span>
+        <code>&lt;leader&gt;ax</code><span>close the current instance</span>
       </div>
     </div>
   </section>
@@ -251,214 +176,205 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 (() => {
   const SPIN = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const agents = {
-    2: { name: "claude", profile: "personal", state: "work", cwd: "~/.config/nvim", branch: "feat/sidekick", task: "lualine workspace pills",
-      body: () => `<div><span class="me">&gt; add workspace pills to lualine, read colors from core/colors.lua</span>
-
-<span class="dot-g">●</span> Read lua/r4k4210/plugins/lualine.lua
-<span class="dot-g">●</span> Read lua/r4k4210/core/colors.lua
-<span class="dot-g">●</span> Update lua/r4k4210/plugins/lualine.lua  <span class="muted">+42 -3</span>
-<span class="dot-b">●</span> I added an <span class="dot-b">ins_left</span> component that renders one pill per tabpage.
-  Active tab uses <span class="dot-b">colors.blue</span>, agents waiting on input use <span class="dot-o">colors.orange</span>.
-
-<span class="dot-y">${"%SPIN%"}</span> <span class="dot-y">Running tests</span> <span class="muted">(12s · esc to interrupt)</span></div>
-<div></div>
-<div class="prompt-box">&gt; <span class="cursor"> </span></div>` },
-    3: { name: "claude-work", profile: "work", state: "ask", cwd: "~/work/api", branch: "fix/invoice-rounding", task: "invoice rounding",
-      body: () => `<div><span class="me">&gt; fix the rounding bug in invoice totals, keep tests green</span>
-
-<span class="dot-g">●</span> Search "roundTo" in src/  <span class="muted">4 matches</span>
-<span class="dot-g">●</span> Read src/billing/invoice.ts
-<span class="dot-b">●</span> The total is rounded per line instead of once at the end, so 3 lines of 0.335 drift by a cent.
-
-<div class="ask"><span class="dot-o">Edit file</span> src/billing/invoice.ts
-<span class="muted">  - return lines.reduce((s, l) =&gt; s + roundTo(l.amount, 2), 0)
-  + return roundTo(lines.reduce((s, l) =&gt; s + l.amount, 0), 2)</span>
-
-Do you want to make this edit?
-<span class="opt-on">❯ 1. Yes</span>
-  2. Yes, and don't ask again this session
-  3. No, tell Claude what to do differently</div></div>
-<div></div>
-<div class="muted">waiting for your answer</div>` },
-    4: { name: "claude", profile: "personal", state: "done", cwd: "~/projects/dotfiles", branch: "main", task: "aerospace gaps",
-      body: () => `<div><span class="me">&gt; tidy aerospace.toml gaps so they match JankyBorders width</span>
-
-<span class="dot-g">●</span> Update ~/.config/aerospace/aerospace.toml  <span class="muted">+4 -4</span>
-<span class="dot-g">●</span> Run aerospace reload-config  <span class="muted">ok</span>
-<span class="dot-b">●</span> Done. Inner gaps are 8, outer gaps are 10, so the 2px border never touches a neighbor.</div>
-<div></div>
-<div class="prompt-box">&gt; <span class="cursor"> </span></div>` },
-  };
-
-  const S = { ws: 1, last: 2, picker: false, sel: 0, frame: 0, toastShown: false };
-  const ctx = { 2: 46, 3: 71, 4: 12 };
-  const limits = {
-    personal: { h5: 38, h5r: "2h14m", d7: 61, d7r: "Thu" },
-    work: { h5: 87, h5r: "47m", d7: 23, d7r: "Mon" },
-  };
-  function meter(label, pct, reset) {
-    const lv = pct >= 85 ? "lv-r" : pct >= 60 ? "lv-y" : "lv-g";
-    const on = Math.round(pct / 10);
-    const cells = `<span class="${lv}">${"▰".repeat(on)}</span><span class="lv-off">${"▱".repeat(10 - on)}</span>`;
-    return `<span class="meter"><span class="ml">${label}</span><span class="cells">${cells}</span><span class="mv">${pct}%</span>${reset ? `<span class="mr">↻ ${reset}</span>` : ""}</span>`;
-  }
+  const ICON = { ask: "?", done: "✓" };
   const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const pad = (s, n) => (String(s) + " ".repeat(n)).slice(0, n);
 
-  const codeLines = [
-    ['<span class="k">local</span> <span class="v">M</span> = {}', 0],
-    ['', 0],
-    ['<span class="c">-- One pill per tabpage, colored by agent state</span>', 0],
-    ['<span class="k">function</span> <span class="v">M</span>.<span class="f">pills</span>()', 0],
-    ['  <span class="k">local</span> out = {}', 0],
-    ['  <span class="k">for</span> i, tab <span class="k">in</span> <span class="f">ipairs</span>(vim.api.<span class="f">nvim_list_tabpages</span>()) <span class="k">do</span>', 0],
-    ['    <span class="k">local</span> ws = <span class="f">require</span>(<span class="s">"workspaces.state"</span>).<span class="f">get</span>(tab)', 0],
-    ['    <span class="k">local</span> hl = ws.state == <span class="s">"ask"</span> <span class="k">and</span> <span class="s">"WsAsk"</span> <span class="k">or</span> <span class="s">"WsIdle"</span>', 1],
-    ['    out[#out + <span class="num">1</span>] = (<span class="s">"%%#%s# %d %s "</span>):<span class="f">format</span>(hl, i, ws.icon)', 0],
-    ['  <span class="k">end</span>', 0],
-    ['  <span class="k">return</span> <span class="t">table</span>.<span class="f">concat</span>(out, <span class="s">" "</span>)', 0],
-    ['<span class="k">end</span>', 0],
-    ['', 0],
-    ['<span class="k">return</span> <span class="v">M</span>', 0],
-  ];
-  $("code").innerHTML = codeLines.map(([t, cur], i) =>
-    `<div class="ln${cur ? " cur" : ""}"><span class="n">${cur ? i + 1 : Math.abs(i - 7)}</span><span>${cur ? t.replace('ws.state', '<span class="cursor">w</span>s.state') : t}</span></div>`
-  ).join("");
+  const profiles = ["claude", "claude-work", "codex"];
+  // Limits belong to the profile (account), context to the session.
+  const limits = {
+    "claude": { h5: 38, h5r: "2h14m", wk: 61, wkr: "nov 26 18:00" },
+    "claude-work": { h5: 87, h5r: "47m", wk: 23, wkr: "nov 24 09:00" },
+    "codex": null,
+  };
+  let inst = {
+    2: { profile: "claude-work", name: "cuca", state: "ask", ctx: 71, cwd: "~/work/api", branch: "fix/invoice-rounding" },
+    3: { profile: "claude", name: "ops analysis", state: "work", ctx: 46, cwd: "~/.config/nvim", branch: "main" },
+    4: { profile: "codex", name: "zarasa", state: "done", ctx: null, cwd: "~/projects/dotfiles", branch: "main" },
+  };
+  const S = { ws: 1, last: 2, float: null, sel: 0, input: "", frame: 0 };
+  const slots = () => [1, ...Object.keys(inst).map(Number).sort()];
 
-  $("tree").innerHTML =
-`<span class="d">  nvim</span>
-<span class="d">  ▾ lua/r4k4210</span>
-<span class="d">    ▸ core</span>
-<span class="d">    ▾ plugins</span>
-        bufferline.lua
-        lualine.lua <span class="g">M</span>
-        neotree.lua
-        sidekick.lua
-<span class="d">    ▾ workspaces</span>
-<span class="sel">        pills.lua <span class="g">U</span></span>        state.lua <span class="g">U</span>
-        picker.lua <span class="g">U</span>
-    init.lua
-    lazy-lock.json`;
+  const lvl = (p) => p == null ? "c-dim" : p >= 85 ? "c-red" : p >= 60 ? "c-yellow" : "c-green";
+  const pct = (p) => `<span class="${lvl(p)}">${p == null ? "  –" : String(p).padStart(3) + "%"}</span>`;
 
-  const icon = (st) => st === "work" ? (reduce ? "…" : SPIN[S.frame % SPIN.length]) : st === "ask" ? "!" : st === "done" ? "✓" : st === "code" ? "" : "·";
-  const ids = () => [1, ...Object.keys(agents).map(Number)];
+  function icon(st) {
+    if (st === "work") return reduce ? "●" : SPIN[S.frame % SPIN.length];
+    return ICON[st] || "";
+  }
+  function pills() {
+    return slots().map((n, i) => {
+      const st = n === 1 ? null : inst[n].state;
+      const ic = icon(st);
+      const cls = ["pill", n === S.ws ? "cur" : st || "", st === "ask" && n !== S.ws && S.frame % 10 < 5 ? "blink" : ""].join(" ");
+      const gap = i ? `<span class="gap"> </span>` : "";
+      return `${gap}<button class="${cls}" data-act="ws" data-n="${n}" aria-label="Workspace ${n}${st ? ", " + st : ""}"> ${n} ${ic ? ic + " " : ""}</button>`;
+    }).join("");
+  }
 
   function tabline() {
+    let left;
     if (S.ws === 1) {
-      $("tabline").innerHTML = `
-        <div class="buf"><span class="ic">◆</span>lualine.lua</div>
-        <div class="buf on"><span class="ic">◆</span>pills.lua <span class="mod">●</span></div>
-        <div class="buf"><span class="ic">◆</span>state.lua</div>`;
+      left = `<span class="bufname"> 󰢱 status.lua </span><span class="slant"></span><span class="bufname on"> 󰢱 picker.lua <span class="c-green">●</span> </span><span class="slant"></span><span class="bufname"> 󰢱 keymaps.lua </span>`;
     } else {
-      const a = agents[S.ws];
-      const l = limits[a.profile];
-      $("tabline").innerHTML = `<div class="tab-agent"><b>${S.ws} · ${a.name}</b><span class="cwd">${a.cwd}  ⎇ ${a.branch}</span><span class="sp"></span>${meter("ctx", ctx[S.ws] ?? 0)}${meter("5h", l.h5, l.h5r)}${meter("week", l.d7, l.d7r)}</div>`;
+      const a = inst[S.ws], l = limits[a.profile];
+      left = ` <span class="c-hi b">${S.ws} ${esc(a.profile)}</span> <span class="c-dim">${esc(a.name || "")}  ${a.cwd}  ${a.branch}</span>   ` +
+        `<span class="c-dim">ctx</span>${pct(a.ctx)}  <span class="c-dim">5h</span>${pct(l && l.h5)}  <span class="c-dim">wk</span>${pct(l && l.wk)}`;
     }
+    $("tabline").innerHTML = `${left}<span class="fill"></span>${pills()} `;
   }
 
   function status() {
-    const pills = ids().map((n) => {
-      const st = n === 1 ? "code" : agents[n].state;
-      const cls = ["pill", n === S.ws ? "on" : "", st === "ask" && n !== S.ws ? "alert" : ""].join(" ");
-      const ic = n === 1 ? "" : `<span class="st st-${st}">${icon(st)}</span>`;
-      return `<button class="${cls}" data-act="ws" data-n="${n}" aria-label="Workspace ${n}"><span class="num">${n}</span>${ic}</button>`;
-    }).join("");
     const left = S.ws === 1
-      ? `<span class="seg mode">●</span><span class="seg file">pills.lua</span><span class="seg dim">1.2k</span><span class="seg dim">8:20</span>`
-      : `<span class="seg mode" style="color:var(--purple)">●</span><span class="seg file">term://${agents[S.ws].name}</span>`;
-    $("status").innerHTML = `<span class="bar">▊</span>${left}<span class="fill"></span><span class="pills">${pills}</span><span class="fill"></span><span class="seg dim">lua_ls</span><span class="seg" style="color:var(--purple)">⎇ feat/sidekick</span><span class="bar">▊</span>`;
+      ? `<span class="c-blue">▊</span> <span class="c-green">●</span> <span class="c-purple b">picker.lua</span> <span class="c-dim">1.2k  8:20</span>`
+      : `<span class="c-blue">▊</span> <span class="c-purple">●</span> <span class="c-purple b">term://${esc(inst[S.ws].profile)}</span>`;
+    $("status").innerHTML = `${left}<span class="fill"></span>${pills()}<span class="fill"></span><span class="c-dim">lua_ls </span><span class="c-purple"> feat/workspaces </span><span class="c-blue">▊</span>`;
   }
+
+  const code = [
+    ['<span class="c-purple">local</span> M = {}', 0],
+    ['', 0],
+    ['<span class="c-dim">-- One row per open instance, columns aligned</span>', 0],
+    ['<span class="c-purple">local function</span> <span class="c-blue">format</span>(e)', 0],
+    ['  <span class="c-purple">return</span> (<span class="c-green">"%d  %-12s %-16s"</span>):<span class="c-blue">format</span>(e.slot, e.agent, e.name)', 1],
+    ['<span class="c-purple">end</span>', 0],
+  ];
+  $("code").innerHTML = code.map(([t, cur], i) => `<div class="ln${cur ? " cur" : ""}"><span class="${cur ? "c-yellow" : "c-dim"}">${String(i + 1).padStart(4)}  </span>${t}</div>`).join("");
+  $("tree").innerHTML = `<span class="c-blue"> crew.nvim</span>
+<span class="c-blue"> ▾ lua/crew</span>
+     config.lua
+     keymaps.lua
+<span class="sel">     picker.lua <span class="c-orange">M</span></span>
+     status.lua
+     workspace.lua`;
 
   function agentView() {
     if (S.ws === 1) return;
-    $("ws-agent").innerHTML = agents[S.ws].body().replace("%SPIN%", reduce ? "●" : SPIN[S.frame % SPIN.length]);
+    const a = inst[S.ws];
+    const head = `<span class="c-dim">${esc(a.profile)} · ${a.cwd}</span>\n\n`;
+    const body = {
+      ask: `<span class="c-dim">&gt; fix the rounding bug in invoice totals</span>\n\n<span class="c-green">●</span> Read src/billing/invoice.ts\n\n<span class="c-orange">Edit file</span> src/billing/invoice.ts\nDo you want to make this edit?\n<span class="c-blue">❯ 1. Yes</span>\n  2. Yes, and don't ask again\n  3. No`,
+      work: `<span class="c-dim">&gt; summarize last week of operations</span>\n\n<span class="c-green">●</span> Read reports/ops.csv\n<span class="c-yellow">${icon("work")} Thinking…</span> <span class="c-dim">(12s · esc to interrupt)</span>`,
+      done: `<span class="c-dim">&gt; tidy aerospace gaps</span>\n\n<span class="c-green">●</span> Update aerospace.toml <span class="c-dim">+4 -4</span>\n<span class="c-blue">●</span> Done.`,
+      idle: `<span class="c-dim">new session</span>\n\n&gt; <span class="cursor"> </span>`,
+    }[a.state || "idle"];
+    $("ws-agent").innerHTML = head + body;
   }
 
-  function picker() {
-    $("scrim").hidden = $("picker").hidden = !S.picker;
-    if (!S.picker) return;
-    const list = ids();
-    S.sel = Math.max(0, Math.min(S.sel, list.length - 1));
-    const rows = list.map((n, i) => {
-      const st = n === 1 ? "code" : agents[n].state;
-      const name = n === 1 ? "editor" : agents[n].name;
-      const meta = n === 1 ? "~/.config/nvim" : agents[n].task;
-      return `<div class="prow${i === S.sel ? " sel" : ""}" data-act="ws" data-n="${n}"><span>${i === S.sel ? "❯" : ""} ${n}</span><span class="st-${st}">${icon(st)}</span><span>${name}</span><span class="meta">${meta}</span></div>`;
-    }).join("");
-    const n = list[S.sel];
-    const prev = n === 1
-      ? `<span class="h">editor</span>\n~/.config/nvim · feat/sidekick\n\n3 buffers open\nneo-tree on the right`
-      : `<span class="h">${agents[n].name} · ${agents[n].profile}</span>\n${agents[n].cwd} · ${agents[n].branch}\nctx ${ctx[n] ?? 0}% · 5h ${limits[agents[n].profile].h5}% · week ${limits[agents[n].profile].d7}%\n\n` + agents[n].body().replace(/<[^>]+>/g, "").replace("%SPIN%", "●").trim().split("\n").slice(-8).join("\n");
-    $("picker").innerHTML = `<span class="title"> Workspaces </span><div class="plist"><div class="pin">&gt; <span>${""}</span><span class="cursor"> </span></div>${rows}</div><div class="pprev">${prev}</div><div class="phelp">j/k move · enter open · x close · n new</div>`;
+  // Picker rows. Plain text columns, the way a snacks format function builds them.
+  function instanceRow(n) {
+    const a = inst[n], l = limits[a.profile];
+    const reset = (r) => r ? `<span class="c-dim"> ↻ ${pad(r, 12)}</span>` : `<span class="c-dim">${" ".repeat(15)}</span>`;
+    return `${n}  <span class="c-hi">${pad(a.profile, 12)}</span> ${a.name ? pad(a.name, 14) : '<span class="c-dim">' + pad("·", 14) + "</span>"} ` +
+      `<span class="c-dim">│</span> ctx ${pct(a.ctx)} <span class="c-dim">│</span> 5h ${pct(l && l.h5)}${reset(l && l.h5r)} wk ${pct(l && l.wk)}${reset(l && l.wkr)}` +
+      ` ${a.state ? `<span class="${a.state === "ask" ? "c-orange" : a.state === "done" ? "c-green" : "c-yellow"}">${icon(a.state)}</span>` : " "}`;
+  }
+
+  function floatView() {
+    $("scrim").hidden = $("float").hidden = !S.float;
+    if (!S.float) return;
+    let title, rows = [], help, input = `<span class="c-blue">❯</span> ${esc(S.input)}<span class="cursor"> </span>`;
+    if (S.float === "pick") {
+      title = "crew instances";
+      rows = Object.keys(inst).map(Number).sort().map((n) => ({ n, html: instanceRow(n) }));
+      help = "enter jump · ␣ai rename · esc close";
+    } else if (S.float === "new") {
+      title = "crew new";
+      rows = profiles.map((p) => ({ n: p, html: `<span class="c-hi">${pad(p, 14)}</span><span class="c-dim">${limits[p] ? "5h " + limits[p].h5 + "%  wk " + limits[p].wk + "%" : "no usage data"}</span>` }));
+      help = "enter open · esc close";
+    } else {
+      title = `name instance ${S.ws}`;
+      help = "enter save · empty clears · esc cancel";
+    }
+    S.sel = Math.max(0, Math.min(S.sel, rows.length - 1));
+    const list = rows.map((r, i) => `<button class="opt${i === S.sel ? " sel" : ""}" role="option" aria-selected="${i === S.sel}" data-act="choose" data-n="${r.n}">${r.html}</button>`).join("");
+    $("float").innerHTML = `<span class="title"> ${title} </span><div class="input">${input}</div>${rows.length ? `<div role="listbox" aria-label="${title}">${list}</div>` : ""}<div class="help">${help}</div>`;
   }
 
   function toast() {
-    const asking = Object.entries(agents).find(([, a]) => a.state === "ask");
-    const show = S.ws === 1 && asking && !S.picker;
-    $("toast").hidden = !show;
-    if (show) $("toast").innerHTML = `<div class="tt">workspace ${asking[0]} needs input</div>${asking[1].name} wants to edit invoice.ts · <span style="color:var(--blue)">&lt;leader&gt;${asking[0]}</span>`;
+    const asking = Object.keys(inst).find((n) => inst[n].state === "ask" && Number(n) !== S.ws);
+    $("toast").hidden = !(asking && S.ws === 1 && !S.float);
+    if (asking) $("toast").innerHTML = `<span class="c-orange b">${asking} ${esc(inst[asking].name || inst[asking].profile)} needs input</span>\n<span class="c-dim">&lt;C-${asking}&gt; to answer</span>`;
   }
 
   function render() {
     $("ws-1").classList.toggle("on", S.ws === 1);
     $("ws-agent").classList.toggle("on", S.ws !== 1);
-    tabline(); status(); agentView(); picker(); toast();
-    $("cmdline").textContent = S.picker ? "" : S.ws === 1 ? "" : "-- TERMINAL --";
+    tabline(); status(); agentView(); floatView(); toast();
+    $("cmdline").textContent = S.float ? "" : S.ws === 1 ? "" : "-- TERMINAL --";
   }
 
   function go(n) {
     n = Number(n);
-    if (n !== 1 && !agents[n]) return;
-    if (n === S.ws) { S.picker = false; render(); return; }
-    document.documentElement.style.setProperty("--dir", n > S.ws ? "14px" : "-14px");
+    if (n !== 1 && !inst[n]) return; // empty slot: stay put, no notification
     if (S.ws !== 1) S.last = S.ws;
-    if (n !== 1) S.last = n;
-    S.ws = n; S.picker = false;
+    S.ws = n; S.float = null;
+    if (n !== 1) { S.last = n; if (inst[n].state === "done" || inst[n].state === "ask") { /* seen */ } }
     render();
   }
-
+  function open(kind) {
+    if (kind === "rename" && S.ws === 1) return;
+    S.float = kind; S.sel = 0;
+    S.input = kind === "rename" ? inst[S.ws].name || "" : "";
+    render();
+  }
+  function choose(n) {
+    if (S.float === "pick") return go(n);
+    if (S.float === "new") {
+      const free = [2,3,4,5,6,7,8,9].find((k) => !inst[k]);
+      if (!free) return;
+      inst[free] = { profile: n, name: "", state: null, ctx: null, cwd: "~/.config/nvim", branch: "main" };
+      return go(free);
+    }
+  }
+  function close() {
+    if (S.ws === 1) return;
+    const keep = Object.keys(inst).map(Number).sort().filter((k) => k !== S.ws).map((k) => inst[k]);
+    inst = {}; keep.forEach((a, i) => { inst[i + 2] = a; }); // slots compact
+    S.ws = 1; S.last = 2; render();
+  }
   function act(a, n) {
     if (a === "ws") go(n);
-    else if (a === "toggle") go(S.ws === 1 ? S.last : 1);
-    else if (a === "picker") { S.picker = !S.picker; S.sel = ids().indexOf(S.ws); render(); }
-    else if (a === "new") {
-      const free = [2,3,4,5,6,7,8,9].find((k) => !agents[k]);
-      if (!free) return;
-      agents[free] = { name: "claude", profile: "personal", state: "idle", cwd: "~/.config/nvim", branch: "feat/sidekick", task: "new session",
-        body: () => `<div class="muted">Claude Code · new session in ~/.config/nvim</div>\n<div></div>\n<div class="prompt-box">&gt; <span class="cursor"> </span></div>` };
-      go(free);
-    }
+    else if (a === "toggle") go(S.ws === 1 ? (inst[S.last] ? S.last : 1) : 1);
+    else if (a === "close") close();
+    else if (a === "choose") choose(n);
+    else open(a);
   }
 
   document.addEventListener("click", (e) => {
     const t = e.target.closest("[data-act]");
     if (t) { act(t.dataset.act, t.dataset.n); $("nvim").focus({ preventScroll: true }); }
   });
-  $("scrim").addEventListener("click", () => { S.picker = false; render(); });
+  $("scrim").addEventListener("click", () => { S.float = null; render(); });
 
   $("nvim").addEventListener("keydown", (e) => {
     const k = e.key;
-    if (S.picker) {
-      const list = ids();
-      if (k === "j" || k === "ArrowDown") S.sel = (S.sel + 1) % list.length;
-      else if (k === "k" || k === "ArrowUp") S.sel = (S.sel - 1 + list.length) % list.length;
-      else if (k === "Enter") return go(list[S.sel]);
-      else if (k === "Escape" || k === "p") S.picker = false;
-      else if (k === "n") return act("new");
-      else if (/^[1-9]$/.test(k)) return go(k);
-      else return;
-      e.preventDefault(); render(); return;
+    if (S.float) {
+      e.preventDefault();
+      const count = S.float === "pick" ? Object.keys(inst).length : S.float === "new" ? profiles.length : 0;
+      if (k === "Escape") S.float = null;
+      else if (k === "ArrowDown" || (k === "j" && e.ctrlKey)) S.sel = (S.sel + 1) % Math.max(count, 1);
+      else if (k === "ArrowUp" || (k === "k" && e.ctrlKey)) S.sel = (S.sel - 1 + count) % Math.max(count, 1);
+      else if (k === "Enter") {
+        if (S.float === "rename") { inst[S.ws].name = S.input.trim(); S.float = null; }
+        else { const ids = S.float === "pick" ? Object.keys(inst).map(Number).sort() : profiles; return choose(ids[S.sel]); }
+      }
+      else if (k === "Backspace") S.input = S.input.slice(0, -1);
+      else if (k.length === 1) S.input += k;
+      render(); return;
     }
     if (/^[1-9]$/.test(k)) go(k);
-    else if (k === "Tab" || k === " ") { e.preventDefault(); act("toggle"); }
-    else if (k === "p") act("picker");
-    else if (k === "n") act("new");
+    else if (k === "Tab") { e.preventDefault(); act("toggle"); }
+    else if (k === "p") open("pick");
+    else if (k === "n") open("new");
+    else if (k === "i") open("rename");
+    else if (k === "x") close();
   });
 
-  if (!reduce) setInterval(() => { S.frame++; status(); if (S.ws !== 1 && agents[S.ws].state === "work") agentView(); if (S.picker) picker(); }, 100);
+  if (!reduce) setInterval(() => { S.frame++; tabline(); status(); if (S.ws !== 1 && inst[S.ws].state === "work") agentView(); if (S.float === "pick") floatView(); }, 100);
   render();
 })();
 </script>
-
+</body>
 </html>
