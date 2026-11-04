@@ -63,6 +63,10 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - [x] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
   - Accept: daily work runs from one terminal for a full day.
 
+## Future ideas
+
+- [ ] **F1 Restore instances after a restart.** When Neovim closes (or on `<leader>aX`), save every open instance to `stdpath("state")/crew.json`: profile, name, cwd and the Claude `session_id`, which every hook payload already carries. On demand (`:Crew restore`, or an opt in `restore = true` on startup), reopen them in order with `claude --resume <session_id>` in their cwd. Prefer `--resume <id>` over `--continue`, because `--continue` picks the latest session of the cwd and two instances in the same project would collide. Open question: restore automatically or ask, since restoring several Claude sessions at once costs startup time.
+
 ## Progress
 
 - 2026-11-03: name chosen (`crew.nvim`), repo folder created, mockup saved, plan written. Git initialized with no commits yet.
