@@ -53,7 +53,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: matches the mockup header and returns to the buffer list in workspace 1.
 - [x] **D1 Refresh docs after L8.** Retake README screenshots from the mockup (deep links `#ws=2`, `#float=pick`) and update the README sections that L8 changes, then push.
 
-- [ ] **L9 Quality and publish.** Tests with `mini.test`, `:checkhealth crew`, `doc/crew.txt`, README, GitHub repo `R4k4210/crew.nvim` with topics.
+- [x] **L9 Quality and publish.** Tests with `mini.test`, `:checkhealth crew`, `doc/crew.txt`, README, GitHub repo `R4k4210/crew.nvim` with topics.
   - Accept: tests pass in CI and the plugin installs from `"R4k4210/crew.nvim"`.
 - [ ] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
   - Accept: daily work runs from one terminal for a full day.
@@ -109,6 +109,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: The user verified L8 and the header background fix. D1 done: README documents usage meters (statusLine chaining), the agent header, bufferline vs lualine as alternatives (with `header = "winbar"` for lualine setups), the header highlight groups and the picker footer; screenshots already match the mockup header.
 
+- 2026-11-04: L9 done. mini.test suite in `tests/` (route: delegated writer for the port of 8 scratch suites, then parent spot check of `make test`): 118 cases in 9 files, each in a fresh child Neovim, `make test` / `make test_file`, deps cloned into `deps/` (`3d1e7e7`). `:checkhealth crew` (`6bce6b4`) and `doc/crew.txt` with a tag test (`docs: vim help`). Repo topics still pending (outward action, needs the user).
+
 ## Next step
 
-L9 quality: tests in the repo with mini.test, `:checkhealth crew`, `doc/crew.txt`.
+Push L9, add repo topics, then L10 (Sidekick already replaced, so only the final user config cleanup remains).
