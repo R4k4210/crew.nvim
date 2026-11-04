@@ -177,7 +177,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 
 ## Status
 
-crew is young and changes often. Health checks, help docs and a test suite inside the repo are on the way.
+crew is young and changes often. Run `:checkhealth crew` when something looks off and read `:help crew` for every option. `make test` runs the mini.test suite, which clones its own dependencies into `deps/`.
 
 ## Mockup
 
