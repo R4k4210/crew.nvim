@@ -34,7 +34,7 @@ M.defaults = {
 		toggle = "<C-,>",
 		new = "<leader>an",
 		close = "<leader>ax",
-		pick = "<leader>ap",
+		pick = "<leader>ai",
 		jump = "<C-%d>",
 		stopinsert = false,
 	},

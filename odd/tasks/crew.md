@@ -77,6 +77,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: `<leader>ap` (crew-pick) and `:Crew pick` added early from L6: a `vim.ui.select` list of the editor and agents with names and state icons, choosing jumps there. The snacks preview of the terminal tail is still L6. Headless check 7 of 7, keys 10 of 10, L4 17 of 17.
 
+- 2026-11-04: crew-pick moved to `<leader>ai` (instances), `<leader>an` keeps picking a profile. The user saw `Item has no file` in every `vim.ui.select`: their global snacks layout `vertical` has a preview window that overrides the `select` preset. Fix proposed for the user config, awaiting approval.
+
 ## Next step
 
 User checks the L4 pills in bufferline and lualine, then OneDark Deep colors for `CrewPill*` and L5 agent state.
