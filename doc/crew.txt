@@ -1,0 +1,197 @@
+*crew.txt*  Run several AI coding agents in Neovim tabs
+
+==============================================================================
+CONTENTS                                                       *crew-contents*
+
+  1. Introduction ..................................... |crew-introduction|
+  2. Setup ................................................... |crew-setup|
+  3. Options ............................................... |crew-options|
+  4. Keys ..................................................... |crew-keys|
+  5. Commands ............................................. |crew-commands|
+  6. Pickers ............................................... |crew-pickers|
+  7. Agent state and usage ................................... |crew-state|
+  8. Pills and header ........................................ |crew-pills|
+  9. Highlights ........................................ |crew-highlights|
+ 10. Health ................................................. |crew-health|
+
+==============================================================================
+1. INTRODUCTION                                            *crew-introduction*
+
+crew gives every agent instance its own tab. Slot 1 is your editor and slots
+2 to 9 are agents. Small pills in the tabline or statusline show the slot of
+each instance and its state, so you always know which agent needs you.
+
+When an instance closes, the ones after it move down, so <C-3> always means
+the third tab you see.
+
+The defaults are opinionated and reflect one workflow (Claude Code, snacks,
+bufferline and lualine). Every key, icon and color can be changed.
+
+==============================================================================
+2. SETUP                                                          *crew-setup*
+
+With lazy.nvim, load crew eagerly so the lualine component and the hooks are
+ready when Neovim starts. >lua
+
+    {
+      "R4k4210/crew.nvim",
+      lazy = false,
+      opts = {
+        agents = {
+          claude = { cmd = { "claude" } },
+          ["claude-work"] = {
+            cmd = { "claude" },
+            env = { CLAUDE_CONFIG_DIR = vim.fn.expand("~/.claude-work") },
+          },
+        },
+      },
+    }
+<
+Without lazy.nvim, call `require("crew").setup(opts)` once.
+
+==============================================================================
+3. OPTIONS                                                      *crew-options*
+
+agents                                                    *crew-opts-agents*
+    Table of profiles keyed by name. Your table replaces the default one.
+    Each profile takes:
+      cmd     list of strings, the command that starts the agent
+      env     table of extra environment variables
+      hooks   false to stop crew from injecting its Claude Code hooks and
+              status line into this agent (default true)
+
+default_agent                                      *crew-opts-default_agent*
+    Profile opened when none is given. Defaults to "claude", or to the first
+    profile name in alphabetical order when you set your own agents.
+
+keys                                                        *crew-opts-keys*
+    Every entry takes a key string or false to turn it off. See |crew-keys|.
+
+header                                                    *crew-opts-header*
+    "winbar" draws the agent header at the top of each agent window, for
+    setups without bufferline. Default false.
+
+icons                                                      *crew-opts-icons*
+    Pill icons per state: `work` (default "●"), `ask` ("?"), `done` ("✓").
+
+==============================================================================
+4. KEYS                                                            *crew-keys*
+
+Leader keys exist only in normal and visual mode, because inside an agent
+the space bar has to reach the agent.
+
+  Key            Mode      Option               Action ~
+  <C-,>          n, t      toggle               editor and last agent
+  <C-1>..<C-9>   n, t      jump                 jump to a slot, silent when
+                                                it is empty
+  <leader>an     n         new                  new instance from a profile
+  <leader>ap     n         pick                 pick an open instance
+  <leader>ai     n         rename               name the current instance
+  <leader>ax     n         close                close the current instance
+  <leader>af     n         send_file            send @path, pick the target
+  <leader>aF     n         send_file_last       send @path to the last agent
+  <leader>av     x         send_selection       send the lines with their
+                                                location, pick the target
+  <leader>aV     x         send_selection_last  same, to the last agent
+
+`jump` is a format string with %d, for example "<A-%d>". `stopinsert` sets a
+key that leaves terminal mode inside agent buffers, for example "jk".
+
+<C-,> and <C-1> to <C-9> need a terminal with the kitty keyboard protocol
+(Ghostty, kitty, WezTerm). Legacy terminals cannot tell those keys apart.
+
+==============================================================================
+5. COMMANDS                                                    *crew-commands*
+
+                                                                       *:Crew*
+:Crew [list]          List open workspaces.
+:Crew open [profile]  Open an instance of a profile.
+:Crew new             Pick a profile and open it.
+:Crew pick            Pick an open instance and jump to it.
+:Crew jump {N}        Jump to slot N.
+:Crew toggle          Go between the editor and the last agent.
+:Crew close [N]       Close slot N, or the current instance.
+:Crew rename [name]   Name the current instance. Empty clears it.
+:Crew config          Print the merged options.
+
+==============================================================================
+6. PICKERS                                                      *crew-pickers*
+
+With snacks.nvim installed, crew opens its own pickers with no preview
+window, so your global picker layout keeps its preview everywhere else.
+Without snacks it uses |vim.ui.select()|.
+
+The instance picker lists the slot, profile and name of each instance with
+its context, five hour and weekly usage. The cursor starts on the last
+visited instance, so Enter picks the usual one. Names live only in the
+picker and the header, never in the pills.
+
+==============================================================================
+7. AGENT STATE AND USAGE                                          *crew-state*
+
+For Claude Code agents, crew merges hooks and a status line into the
+`--settings` flag of the command. Your own settings.json is never touched,
+and a `--settings` you already pass keeps its content.
+
+  ●   working          clears when the agent stops or asks
+  ?   waiting on you   blinks and notifies while you are in another tab
+  ✓   finished         clears when you visit its tab
+
+The status line forwards context and rate limits to Neovim, then runs your
+own status line command with the same input and prints its output. crew
+finds that command in the agent `--settings` or in the settings.json of its
+config directory ($CLAUDE_CONFIG_DIR, default ~/.claude). Context belongs to
+each instance and limits belong to the profile.
+
+Both bridges are small Lua scripts that reach Neovim through $NVIM and always
+exit cleanly, so they never block Claude.
+
+==============================================================================
+8. PILLS AND HEADER                                               *crew-pills*
+
+crew ships adapters and leaves the wiring to you. Use the one that matches
+your setup.
+
+Bufferline: pills on the right, and inside agent tabs a header with slot,
+profile, name, cwd, branch and usage in place of the editor buffers. >lua
+
+    options = {
+      show_tab_indicators = false,
+      custom_filter = function(buf)
+        return require("crew.bufferline").filter(buf)
+      end,
+      custom_areas = {
+        left = function() return require("crew.bufferline").left() end,
+        right = function() return require("crew.bufferline").right() end,
+      },
+    }
+<
+Lualine: a native component. Put it after a `%=` split to center it, and set
+`header = "winbar"` to get the agent header. >lua
+
+    sections = { lualine_c = { "crew" } }
+<
+==============================================================================
+9. HIGHLIGHTS                                                *crew-highlights*
+
+All groups link to standard ones with `default = true`, so they follow your
+colorscheme and your own |nvim_set_hl()| calls win.
+
+  CrewPill            pill of an idle slot             TabLine
+  CrewPillCurrent     pill of the tab you are in       TabLineSel
+  CrewPillWork        agent working                    DiagnosticInfo
+  CrewPillAsk         agent waiting on you             DiagnosticWarn
+  CrewPillAskBlink    second phase of the ask blink    IncSearch
+  CrewPillDone        agent finished                   DiagnosticOk
+  CrewHeader          slot and profile in the header   Title
+  CrewHeaderName      instance name in the header      Normal
+  CrewHeaderDim       cwd, branch and labels           Comment
+
+==============================================================================
+10. HEALTH                                                       *crew-health*
+
+`:checkhealth crew` checks the Neovim version, that every agent command is
+installed, that the bridge scripts exist and which status line each Claude
+profile chains. Optional integrations are reported as information.
+
+ vim:tw=78:ts=8:ft=help:norl:
