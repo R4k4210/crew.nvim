@@ -82,6 +82,24 @@ T["close_all"]["closes every agent and lands in the editor"] = function()
 	eq(child.lua_get([[#vim.tbl_filter(function(b) return vim.bo[b].buftype == "terminal" end, vim.api.nvim_list_bufs())]]), 0)
 end
 
+T["session save"] = MiniTest.new_set()
+
+T["session save"]["on exit closes agents so the session holds editor files only"] = function()
+	setup()
+	open(2)
+	child.lua("ws.before_session_save(0)")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("#vim.api.nvim_list_tabpages()"), 1)
+end
+
+T["session save"]["mid session keeps agents open"] = function()
+	setup()
+	open(2)
+	child.lua("vim.api.nvim_exec_autocmds('User', { pattern = 'PersistenceSavePre' })")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 2)
+	eq(child.lua_get("#vim.api.nvim_list_tabpages()"), 3)
+end
+
 T["close_all"]["is silent and safe with no agents"] = function()
 	setup()
 	child.lua([[

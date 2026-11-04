@@ -245,6 +245,16 @@ function M.close_all()
 	end
 end
 
+--- Called before a session file is written. On exit, close every agent so
+--- :mksession keeps editor files only; a restored session would otherwise
+--- reopen a bare agent terminal outside crew. A save mid session keeps them.
+---@param exiting any v:exiting, vim.NIL until Neovim starts to quit
+function M.before_session_save(exiting)
+	if exiting ~= nil and exiting ~= vim.NIL then
+		M.close_all()
+	end
+end
+
 --- Name a workspace, or the current one when no slot is given.
 --- An empty or nil name clears it.
 ---@param name? string

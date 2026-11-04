@@ -35,6 +35,16 @@ vim.api.nvim_create_autocmd("TabClosed", {
 	end,
 })
 
+-- persistence.nvim saves the session on exit. Agent tabs must not end up in it.
+vim.api.nvim_create_autocmd("User", {
+	group = group,
+	pattern = "PersistenceSavePre",
+	desc = "Close crew agents before persistence.nvim saves the session on exit",
+	callback = function()
+		require("crew.workspace").before_session_save(vim.v.exiting)
+	end,
+})
+
 vim.api.nvim_create_autocmd("TabEnter", {
 	group = group,
 	desc = "Mark a done agent as seen and stop the blink for the one you look at",
