@@ -8,7 +8,11 @@
 ---@field default_agent string Agent opened when no name is given
 ---@field keys crew.Keys
 ---@field icons crew.Icons
+---@field editor crew.EditorPill
 ---@field header? "winbar"|false Agent header in the winbar of agent windows. Leave false when bufferline draws it (crew.bufferline.left)
+
+---@class crew.EditorPill
+---@field label string Text of the editor pill, padded like the agent pills
 
 ---@class crew.Icons
 ---@field work string Agent is running a task
@@ -53,6 +57,7 @@ M.defaults = {
 		stopinsert = false,
 	},
 	header = false,
+	editor = { label = "E" },
 	icons = {
 		work = "●",
 		ask = "?",

@@ -72,7 +72,9 @@ function M.pills()
 	for _, entry in ipairs(M.list()) do
 		local icon = entry.state and icons[entry.state]
 		local hl = "CrewPill"
-		if entry.current then
+		if entry.editor then
+			hl = entry.current and "CrewPillEditorCurrent" or "CrewPillEditor"
+		elseif entry.current then
 			hl = "CrewPillCurrent"
 		elseif entry.state == "ask" and require("crew.state").blink then
 			hl = "CrewPillAskBlink" -- second phase of the blink, flipped by a timer
@@ -81,7 +83,7 @@ function M.pills()
 		end
 		local text
 		if entry.editor then
-			text = " E "
+			text = (" %s "):format(config.options.editor.label)
 		else
 			text = icon and (" %d %s "):format(entry.slot, icon) or (" %d "):format(entry.slot)
 		end
