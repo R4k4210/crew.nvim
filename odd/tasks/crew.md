@@ -65,7 +65,12 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 ## Future ideas
 
-- [ ] **F1 Restore instances after a restart.** When Neovim closes (or on `<leader>aX`), save every open instance to `stdpath("state")/crew.json`: profile, name, cwd and the Claude `session_id`, which every hook payload already carries. On demand (`:Crew restore`, or an opt in `restore = true` on startup), reopen them in order with `claude --resume <session_id>` in their cwd. Prefer `--resume <id>` over `--continue`, because `--continue` picks the latest session of the cwd and two instances in the same project would collide. Open question: restore automatically or ask, since restoring several Claude sessions at once costs startup time.
+- [ ] **F1 Restore instances after a restart.** Design agreed in discussion with the user, not built yet.
+  - Intent decides: `<leader>aX` means "done with these agents" and clears the saved state; an abrupt exit (terminal closed, crash, `:qa!`) should restore.
+  - Save on every change (open, close, rename, `session_id` arriving through the hooks) to `stdpath("state")/crew/<cwd>.json`, never only on exit, because a killed terminal may skip `VimLeavePre`. Store profile, name, cwd and the Claude `session_id`.
+  - Restore through persistence.nvim, which backs the snacks dashboard "Restore Session" (`s`): on `User PersistenceSavePre` keep agent tabs out of the session, on `User PersistenceLoadPost` reopen each instance with `claude --resume <session_id>` in order. Use `--resume <id>`, not `--continue`, so two instances in one project do not collide. Without persistence, offer `:Crew restore`.
+  - Likely bug today: `:mksession` saves tabs and terminals by default, so restoring with persistence may relaunch Claude as plain terminals outside crew (no pills, no hooks, new conversation). Verify first; F1 fixes it.
+  - A "quit everything" key should end in `:confirm qa`, not `:qa!`, which drops unsaved buffers silently.
 
 ## Progress
 
