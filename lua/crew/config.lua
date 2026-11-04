@@ -54,7 +54,19 @@ M.options = vim.deepcopy(M.defaults)
 
 ---@param opts? crew.Config
 function M.setup(opts)
-	M.options = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts or {})
+	opts = opts or {}
+	local options = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts)
+	-- Agents are a set the user owns: their list replaces the defaults
+	-- instead of merging, so defining only codex does not leave claude around.
+	if opts.agents then
+		options.agents = vim.deepcopy(opts.agents)
+		if not opts.default_agent then
+			local names = vim.tbl_keys(options.agents)
+			table.sort(names)
+			options.default_agent = names[1]
+		end
+	end
+	M.options = options
 end
 
 return M
