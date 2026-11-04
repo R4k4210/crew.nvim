@@ -43,7 +43,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - [x] **P2 Instance names.** `<leader>ai` opens an input that names the current instance (empty clears). Names show in the picker and the agent tab header, never in the pills.
 - [x] **P3 Key swap.** `<leader>ap` goes back to the instance picker, `<leader>ai` becomes rename.
 
-- [ ] **L5 Agent state.** Each agent gets `CREW_WS` in its environment. Claude Code hooks (`UserPromptSubmit`, `Notification`, `Stop`) call `nvim --server "$NVIM" --remote-expr` to report `work`, `ask` or `done`. A toast appears when an agent waits on input. Concept: RPC between a child process and Neovim.
+- [x] **L5 Agent state.** Each agent gets `CREW_WS` in its environment. Claude Code hooks (`UserPromptSubmit`, `Notification`, `Stop`) call `nvim --server "$NVIM" --remote-expr` to report `work`, `ask` or `done`. A toast appears when an agent waits on input. Concept: RPC between a child process and Neovim.
   - Accept: a permission prompt in workspace 3 turns its pill orange and pulses it while the user is in the editor.
 - [ ] **L6 Picker.** A snacks picker listing workspaces with a live preview of the terminal tail, plus a `vim.ui.select` fallback. Concept: optional dependencies.
   - Accept: `<C-,>p` lists every workspace, `enter` jumps and `x` closes.
@@ -93,6 +93,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: L5 written. `crew.hooks` merges four hooks (UserPromptSubmit, PostToolUse, Notification, Stop) into the `--settings` of claude agents (one flag, user settings and hooks kept, `hooks = false` opts out). Each runs `scripts/hook.lua` via `nvim --clean -l`, which reads the hook JSON and calls `crew.state.report(id, event, payload)` over `$NVIM`. Workspaces get a stable `id` (exported as `CREW_ID`) because slots renumber. `idle_prompt` is ignored, done clears on TabEnter, ask toasts when away and blinks via a 600 ms timer (`CrewPillAskBlink`). Route: inline, teaching session. Headless 26 of 26 plus all suites; the real script driven against a crew server (all transitions, no `$NVIM` and bad JSON exit 0, 20 ms per run). Pending: check with real Claude.
 
+- 2026-11-04: The user verified L5 with real Claude: work, ask (blink plus toast) and done all show; symbols clear once seen, as designed.
+
 ## Next step
 
-User checks L5 with real Claude (prompt, permission prompt, finish), then L7 usage meters.
+L7 usage meters (statusLine script forwards context and rate limits), then the picker columns fill in.
