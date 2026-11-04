@@ -35,6 +35,8 @@ function M.list()
 				slot = slot,
 				agent = ws.agent,
 				state = ws.state,
+				name = ws.name,
+				usage = ws.usage,
 				current = ws == current,
 			}
 		end

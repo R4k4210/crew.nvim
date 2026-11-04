@@ -26,8 +26,17 @@ local subcommands = {
 	toggle = function()
 		require("crew.workspace").toggle()
 	end,
+	new = function()
+		require("crew.picker").new()
+	end,
 	pick = function()
 		require("crew.picker").pick()
+	end,
+	rename = function(args)
+		if #args == 0 then
+			return require("crew.picker").rename()
+		end
+		require("crew.workspace").rename(table.concat(args, " "))
 	end,
 	close = function(args)
 		require("crew.workspace").close(tonumber(args[1]))

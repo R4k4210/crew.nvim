@@ -9,6 +9,17 @@ local config = require("crew.config")
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
+---@field name? string Label set by the user, shown in the picker and never in the pills
+---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
+
+---@class crew.Limit
+---@field pct number Percent used
+---@field resets_at integer Epoch seconds
+
+---@class crew.Usage
+---@field ctx? number Context window percent used
+---@field five_hour? crew.Limit
+---@field seven_day? crew.Limit
 
 local M = {}
 
@@ -201,6 +212,20 @@ function M.close(slot)
 		return
 	end
 	remove(ws)
+end
+
+--- Name a workspace, or the current one when no slot is given.
+--- An empty or nil name clears it.
+---@param name? string
+---@param slot? integer
+function M.rename(name, slot)
+	local ws = slot and M.workspaces[slot] or M.current()
+	if not ws then
+		return
+	end
+	name = name and vim.trim(name) or ""
+	ws.name = name ~= "" and name or nil
+	changed()
 end
 
 --- Drop workspaces whose tab was closed by hand (:tabclose).

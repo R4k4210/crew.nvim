@@ -39,9 +39,9 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: every action works from inside a running agent without leaving insert mode first.
 - [ ] **L4 Pills API and adapters.** `crew.status` owns the data (`list()`) and the pill format (`pills()`), shown as number plus state icon (`?` for ask, `●` work, `✓` done, from `opts.icons`). Two thin adapters render the same pills: `require("crew.bufferline").right` for `custom_areas` (with `show_tab_indicators = false`) and a native lualine component used as `"crew"`. Route: inline, teaching session continuing L1 to L3 with the code already loaded. Concept: a data core with ports per consumer, statusline expressions, highlight groups and `default = true` links.
   - Accept: pills render in the user lualine with OneDark Deep colors set from the user config only.
-- [ ] **P1 Crew pickers without preview.** `<leader>an` (profiles) and `<leader>ap` (instances) open a snacks picker with `layout = { preview = false }`, falling back to `vim.ui.select`. Instance rows: slot, profile, name, then ctx, 5h and week columns that show `–` until L7 fills them.
-- [ ] **P2 Instance names.** `<leader>ai` opens an input that names the current instance (empty clears). Names show in the picker and the agent tab header, never in the pills.
-- [ ] **P3 Key swap.** `<leader>ap` goes back to the instance picker, `<leader>ai` becomes rename.
+- [x] **P1 Crew pickers without preview.** `<leader>an` (profiles) and `<leader>ap` (instances) open a snacks picker with `layout = { preview = false }`, falling back to `vim.ui.select`. Instance rows: slot, profile, name, then ctx, 5h and week columns that show `–` until L7 fills them.
+- [x] **P2 Instance names.** `<leader>ai` opens an input that names the current instance (empty clears). Names show in the picker and the agent tab header, never in the pills.
+- [x] **P3 Key swap.** `<leader>ap` goes back to the instance picker, `<leader>ai` becomes rename.
 
 - [ ] **L5 Agent state.** Each agent gets `CREW_WS` in its environment. Claude Code hooks (`UserPromptSubmit`, `Notification`, `Stop`) call `nvim --server "$NVIM" --remote-expr` to report `work`, `ask` or `done`. A toast appears when an agent waits on input. Concept: RPC between a child process and Neovim.
   - Accept: a permission prompt in workspace 3 turns its pill orange and pulses it while the user is in the editor.
@@ -85,6 +85,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: Mockup rewritten within Neovim limits (cells, floats with rounded borders, flat pills, timer blink) and approved by the user. New tasks added: P1 to P3.
 
+- 2026-11-04: P1 to P3 done. Crew opens its own snacks picker (`preview = false`, list height fitted to the rows) with a `vim.ui.select` fallback; `<leader>an` profiles, `<leader>ap` instances with aligned slot, profile, name, ctx, 5h and week columns (`–` until L7), `<leader>ai` names the current instance (`:Crew rename [name]`, empty clears). `crew.Usage` shape follows Claude `rate_limits` (`pct`, `resets_at`). Headless 21 of 21, keys 10 of 10, L4 17 of 17; snacks path driven over RPC in the user config (no preview window, box 4 rows for 2 items, rename and jump work). Still open: `opts.agents` merges with the default `claude` profile.
+
 ## Next step
 
-User checks the L4 pills in bufferline and lualine, then OneDark Deep colors for `CrewPill*` and L5 agent state.
+User checks pills and pickers after a restart, then L5 agent state (hooks report work, ask, done).

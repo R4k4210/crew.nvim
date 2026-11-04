@@ -5,20 +5,6 @@ local config = require("crew.config")
 
 local M = {}
 
---- Open an agent, asking which one when there is more than one profile.
-local function pick_and_open()
-	local names = vim.tbl_keys(config.options.agents)
-	table.sort(names)
-	if #names == 1 then
-		return require("crew.workspace").open(names[1])
-	end
-	vim.ui.select(names, { prompt = "Open agent" }, function(name)
-		if name then
-			require("crew.workspace").open(name)
-		end
-	end)
-end
-
 ---@param modes string|string[]
 ---@param lhs string|false|nil
 ---@param rhs function
@@ -41,13 +27,21 @@ function M.setup()
 	end, "crew: editor <-> last agent")
 
 	-- Normal mode only: in terminal mode <leader> (Space) must reach the agent.
-	set("n", keys.new, pick_and_open, "crew-new")
+	local picker = function()
+		return require("crew.picker")
+	end
+	set("n", keys.new, function()
+		picker().new()
+	end, "crew-new")
 	set("n", keys.close, function()
 		ws().close()
 	end, "crew-exit")
 	set("n", keys.pick, function()
-		require("crew.picker").pick()
+		picker().pick()
 	end, "crew-pick")
+	set("n", keys.rename, function()
+		picker().rename()
+	end, "crew-rename")
 
 	-- Ctrl plus a digit has no legacy terminal encoding, so these only fire
 	-- where the kitty keyboard protocol is on.
