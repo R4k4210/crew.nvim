@@ -17,6 +17,7 @@
 ---@field toggle? string|false Editor <-> last agent, in normal and terminal mode. A single key, never a chord, so it does not depend on timeoutlen
 ---@field new? string|false Open a new agent (normal mode), asks which one when there are several profiles
 ---@field close? string|false Close the current agent (normal mode)
+---@field pick? string|false Pick a workspace from a list with agent names (normal mode)
 ---@field jump? string|false Direct jump to slot N, a format string with %d (e.g. "<C-%d>"), false to disable. Needs a terminal with the kitty keyboard protocol
 ---@field stopinsert? string|false Key that leaves terminal mode inside agent buffers, e.g. "jk"
 
@@ -33,6 +34,7 @@ M.defaults = {
 		toggle = "<C-,>",
 		new = "<leader>an",
 		close = "<leader>ax",
+		pick = "<leader>ap",
 		jump = "<C-%d>",
 		stopinsert = false,
 	},

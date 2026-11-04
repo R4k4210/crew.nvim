@@ -75,6 +75,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-03: Defaults moved to `<leader>an` (crew-new) and `<leader>ax` (crew-exit), since `<leader>c` collided with the user Delete Buffer. Sidekick removed from the user config early (L10 partly done; backup of its uncommitted spec kept in the session scratchpad). The user crew spec now passes `--settings {"tui":"default"}` to both claude profiles (fullscreen TUI keeps no scrollback in a terminal buffer) and maps `<leader>aa` to `:Crew toggle` through lazy `keys`. Lost with Sidekick: send this, file, selection and prompt. Pending: the user `<leader>c` reorganization (Delete Buffer to `<leader>x`, Rename File to `<leader>fR`) awaits confirmation.
 
+- 2026-11-04: `<leader>ap` (crew-pick) and `:Crew pick` added early from L6: a `vim.ui.select` list of the editor and agents with names and state icons, choosing jumps there. The snacks preview of the terminal tail is still L6. Headless check 7 of 7, keys 10 of 10, L4 17 of 17.
+
 ## Next step
 
 User checks the L4 pills in bufferline and lualine, then OneDark Deep colors for `CrewPill*` and L5 agent state.

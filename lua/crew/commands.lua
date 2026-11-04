@@ -26,6 +26,9 @@ local subcommands = {
 	toggle = function()
 		require("crew.workspace").toggle()
 	end,
+	pick = function()
+		require("crew.picker").pick()
+	end,
 	close = function(args)
 		require("crew.workspace").close(tonumber(args[1]))
 	end,

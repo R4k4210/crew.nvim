@@ -45,6 +45,9 @@ function M.setup()
 	set("n", keys.close, function()
 		ws().close()
 	end, "crew-exit")
+	set("n", keys.pick, function()
+		require("crew.picker").pick()
+	end, "crew-pick")
 
 	-- Ctrl plus a digit has no legacy terminal encoding, so these only fire
 	-- where the kitty keyboard protocol is on.
