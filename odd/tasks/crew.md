@@ -69,7 +69,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Intent decides: `<leader>aX` means "done with these agents" and clears the saved state; an abrupt exit (terminal closed, crash, `:qa!`) should restore.
   - Save on every change (open, close, rename, `session_id` arriving through the hooks) to `stdpath("state")/crew/<cwd>.json`, never only on exit, because a killed terminal may skip `VimLeavePre`. Store profile, name, cwd and the Claude `session_id`.
   - Restore through persistence.nvim, which backs the snacks dashboard "Restore Session" (`s`): on `User PersistenceSavePre` keep agent tabs out of the session, on `User PersistenceLoadPost` reopen each instance with `claude --resume <session_id>` in order. Use `--resume <id>`, not `--continue`, so two instances in one project do not collide. Without persistence, offer `:Crew restore`.
-  - Likely bug today: `:mksession` saves tabs and terminals by default, so restoring with persistence may relaunch Claude as plain terminals outside crew (no pills, no hooks, new conversation). Verify first; F1 fixes it.
+  - Bug confirmed by the user on 2026-11-04: restoring with `S` opens a plain Claude terminal outside crew, because `:mksession` saves agent tabs and their terminal command. First step (small fix): on `User PersistenceSavePre`, only when `v:exiting` is set, close crew agent tabs so the session holds editor files only. A manual save mid session must not close agents.
   - A "quit everything" key should end in `:confirm qa`, not `:qa!`, which drops unsaved buffers silently.
 
 ## Progress
@@ -133,4 +133,4 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 ## Next step
 
-L10: final user config cleanup (Sidekick already removed); commit the user config changes in the nvim repo when the user decides.
+Tomorrow (2026-11-05): the small fix for the plain Claude that `S` restores (F1 first step), then the rest of F1 if wanted.
