@@ -91,7 +91,7 @@ To map things yourself, set the keys to `false` and call the commands listed bel
 
 ## Pickers
 
-crew opens its own snacks pickers with no preview window, so your global picker layout keeps its file preview everywhere else. The instance picker shows the slot, profile and name of each instance next to its usage.
+crew opens its own snacks pickers with no preview window, so your global picker layout keeps its file preview everywhere else. The instance picker shows the slot, profile and name of each instance next to its usage, with a footer listing the keys that work inside it.
 
 ![The instance picker](docs/images/picker.png)
 
@@ -107,28 +107,63 @@ Claude Code instances report their state through hooks that crew injects through
 | `?` | The agent waits on you, for example a permission prompt | You answer |
 | `✓` | The agent finished | You visit its tab |
 
-A waiting agent also blinks its pill and shows a notification when you are in another tab. Each hook runs a small Lua script that talks to Neovim through `$NVIM` and always exits cleanly, so a broken hook can never block Claude. Set `hooks = false` on an agent to opt out.
+A waiting agent also blinks its pill and shows a notification when you are in another tab. Each hook runs a small Lua script that talks to Neovim through `$NVIM` and always exits cleanly, so a broken hook can never block Claude.
 
-## Pills in bufferline and lualine
+## Usage meters
 
-crew ships one adapter per plugin and leaves the wiring to you, so it never changes another plugin behind your back. Use either one or both.
+Context, five hour and weekly usage come from the Claude Code status line, which crew takes over through the same `--settings` merge. Context belongs to each instance while both limits belong to the profile, so two `claude-work` instances show the same limits.
+
+Only one status line can run per Claude session, so crew chains yours. It finds your own `statusLine` in the agent `--settings` or in the `settings.json` of its config directory (respecting `CLAUDE_CONFIG_DIR`), runs it with the same input and prints its output. Your status bar inside Claude looks exactly as before.
+
+Set `hooks = false` on an agent to turn off both the state hooks and the usage feed for it.
+
+## Pills and the agent header
+
+crew ships thin adapters and leaves the wiring to you, so it never changes another plugin behind your back. Neither bufferline nor lualine is required, so pick the one you already use.
+
+### With bufferline
+
+Pills replace the tab numbers on the right. Inside agent tabs the filter hides your editor buffers and the left area shows a header with the slot, profile, name, cwd, branch and usage meters of that agent.
 
 ```lua
--- bufferline: pills replace the tab numbers on the right
 options = {
   show_tab_indicators = false,
+  custom_filter = function(buf)
+    return require("crew.bufferline").filter(buf)
+  end,
   custom_areas = {
+    left = function()
+      return require("crew.bufferline").left()
+    end,
     right = function()
       return require("crew.bufferline").right()
     end,
   },
 }
+```
 
--- lualine: a native component
+### With lualine
+
+The pills are a native component. Place it after a `%=` split to center it.
+
+```lua
 sections = { lualine_c = { "crew" } }
 ```
 
-Pills use the highlight groups `CrewPill`, `CrewPillCurrent`, `CrewPillWork`, `CrewPillAsk`, `CrewPillAskBlink` and `CrewPillDone`. They are linked to standard groups with `default = true`, so they follow your colorscheme and any `nvim_set_hl` call of yours wins.
+Lualine has no room for the agent header, so turn on `header = "winbar"` in the crew options. The header then shows at the top of each agent window, where a narrow window cuts the cwd before it cuts the agent name.
+
+### Highlight groups
+
+Every color comes from a group linked to a standard one with `default = true`, so crew follows your colorscheme and any `nvim_set_hl` call of yours wins.
+
+- Pills use `CrewPill`, `CrewPillCurrent`, `CrewPillWork`, `CrewPillAsk`, `CrewPillAskBlink` and `CrewPillDone`
+- The header uses `CrewHeader` for the slot and profile, `CrewHeaderName` for the name and `CrewHeaderDim` for the cwd, branch and labels
+
+Brightening the dim header text takes one line in your config.
+
+```lua
+vim.api.nvim_set_hl(0, "CrewHeaderDim", { fg = "#6c7d9c" })
+```
 
 ## Commands
 
@@ -142,7 +177,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 
 ## Status
 
-crew is young and changes often. The usage columns in the instance picker show a dash until the usage feed from the Claude Code status line lands. Health checks, help docs and tests are on the way.
+crew is young and changes often. Health checks, help docs and a test suite inside the repo are on the way.
 
 ## Mockup
 

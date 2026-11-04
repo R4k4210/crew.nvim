@@ -49,9 +49,9 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: `<C-,>p` lists every workspace, `enter` jumps and `x` closes.
 - [x] **L7 Usage meters.** A statusLine script forwards `context_window.used_percentage` and `rate_limits.five_hour` / `seven_day` to Neovim. Agent tabs show ctx, 5h and week bars with reset times. Concept: designing for missing data, since `rate_limits` arrives after the first response.
   - Accept: bars update per session for ctx and per profile for limits, and render empty without errors before data exists.
-- [ ] **L8 Header in agent tabs.** Bufferline (or a winbar fallback) shows agent name, cwd, branch and the meters inside agent tabs.
+- [x] **L8 Header in agent tabs.** Bufferline (or a winbar fallback) shows agent name, cwd, branch and the meters inside agent tabs.
   - Accept: matches the mockup header and returns to the buffer list in workspace 1.
-- [ ] **D1 Refresh docs after L8.** Retake README screenshots from the mockup (deep links `#ws=2`, `#float=pick`) and update the README sections that L8 changes, then push.
+- [x] **D1 Refresh docs after L8.** Retake README screenshots from the mockup (deep links `#ws=2`, `#float=pick`) and update the README sections that L8 changes, then push.
 
 - [ ] **L9 Quality and publish.** Tests with `mini.test`, `:checkhealth crew`, `doc/crew.txt`, README, GitHub repo `R4k4210/crew.nvim` with topics.
   - Accept: tests pass in CI and the plugin installs from `"R4k4210/crew.nvim"`.
@@ -107,6 +107,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: Bug found by the user: header pieces showed on mixed backgrounds (name on black, the rest on gray). Cause: links to groups with a bg (Normal) and without one (Title, Comment, Diagnostic*, which fall back to TabLineFill). Fix: the bufferline adapter builds `CrewBufferline<Group>` copies with the source fg on `BufferLineFill` bg (else `TabLineFill`), refreshed when colors change (bufferline own generated groups are `default = true` and would freeze a percentage color). Dim header text now uses `CrewHeaderDim` (links Comment) so users can brighten it. Headless 21 of 21; user theme check shows every item on `#07090c`.
 
+- 2026-11-04: The user verified L8 and the header background fix. D1 done: README documents usage meters (statusLine chaining), the agent header, bufferline vs lualine as alternatives (with `header = "winbar"` for lualine setups), the header highlight groups and the picker footer; screenshots already match the mockup header.
+
 ## Next step
 
-User checks the L8 header, then D1 docs refresh and push, then L9 quality.
+L9 quality: tests in the repo with mini.test, `:checkhealth crew`, `doc/crew.txt`.
