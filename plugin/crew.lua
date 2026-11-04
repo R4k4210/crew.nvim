@@ -34,3 +34,11 @@ vim.api.nvim_create_autocmd("TabClosed", {
 		require("crew.workspace").prune()
 	end,
 })
+
+vim.api.nvim_create_autocmd("TabEnter", {
+	group = group,
+	desc = "Mark a done agent as seen and stop the blink for the one you look at",
+	callback = function()
+		require("crew.state").seen()
+	end,
+})

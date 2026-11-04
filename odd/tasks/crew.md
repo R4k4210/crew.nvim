@@ -91,6 +91,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: Send targets: `<leader>af` / `<leader>av` ask which instance (skipped with one open, cursor starts on the last visited one via snacks `on_show` plus `list:set_target`), `<leader>aF` / `<leader>aV` go straight to the last agent. `picker.instances(title, on_choice)` is the reusable instance chooser. Headless 9 of 9 plus all earlier suites; preselection verified with real snacks and three `cat` agents over RPC.
 
+- 2026-11-04: L5 written. `crew.hooks` merges four hooks (UserPromptSubmit, PostToolUse, Notification, Stop) into the `--settings` of claude agents (one flag, user settings and hooks kept, `hooks = false` opts out). Each runs `scripts/hook.lua` via `nvim --clean -l`, which reads the hook JSON and calls `crew.state.report(id, event, payload)` over `$NVIM`. Workspaces get a stable `id` (exported as `CREW_ID`) because slots renumber. `idle_prompt` is ignored, done clears on TabEnter, ask toasts when away and blinks via a 600 ms timer (`CrewPillAskBlink`). Route: inline, teaching session. Headless 26 of 26 plus all suites; the real script driven against a crew server (all transitions, no `$NVIM` and bad JSON exit 0, 20 ms per run). Pending: check with real Claude.
+
 ## Next step
 
-User checks pills and pickers after a restart, then L5 agent state (hooks report work, ask, done).
+User checks L5 with real Claude (prompt, permission prompt, finish), then L7 usage meters.

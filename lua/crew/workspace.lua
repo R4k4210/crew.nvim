@@ -3,7 +3,8 @@
 local config = require("crew.config")
 
 ---@class crew.Workspace
----@field slot integer Number shown to the user (2..9)
+---@field id integer Stable for the whole life of the workspace, unlike slot. Hooks report with it
+---@field slot integer Number shown to the user (2..9), renumbered when a workspace closes
 ---@field agent string Agent profile name
 ---@field tab integer Tabpage handle
 ---@field buf integer Terminal buffer
@@ -38,6 +39,8 @@ M.workspaces = {}
 M.home = nil
 ---@type integer? Slot of the last visited agent, used by toggle()
 M.last = nil
+
+local next_id = 0
 
 ---@return integer?
 local function free_slot()
@@ -123,6 +126,7 @@ local function remove(ws)
 		vim.api.nvim_buf_delete(ws.buf, { force = true })
 	end
 	compact()
+	require("crew.state").update_blink()
 	changed()
 end
 
@@ -147,17 +151,21 @@ function M.open(name)
 	end
 
 	vim.cmd(("%dtabnew"):format(tab_before(slot)))
+	next_id = next_id + 1
 	---@type crew.Workspace
 	local ws = {
+		id = next_id,
 		slot = slot,
 		agent = name,
 		tab = vim.api.nvim_get_current_tabpage(),
 		buf = vim.api.nvim_get_current_buf(),
 		job = 0,
 	}
-	ws.job = vim.fn.jobstart(agent.cmd, {
+	-- CREW_ID tells the hooks who they are; Neovim adds $NVIM on its own.
+	local env = vim.tbl_extend("force", agent.env or {}, { CREW_ID = tostring(ws.id) })
+	ws.job = vim.fn.jobstart(require("crew.hooks").command(agent.cmd, agent.hooks), {
 		term = true,
-		env = agent.env,
+		env = env,
 		on_exit = function()
 			-- Job callbacks run in a restricted context, so defer the cleanup.
 			vim.schedule(function()

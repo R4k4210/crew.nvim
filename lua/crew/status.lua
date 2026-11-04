@@ -61,6 +61,8 @@ function M.pills()
 		local hl = "CrewPill"
 		if entry.current then
 			hl = "CrewPillCurrent"
+		elseif entry.state == "ask" and require("crew.state").blink then
+			hl = "CrewPillAskBlink" -- second phase of the blink, flipped by a timer
 		elseif entry.state then
 			hl = STATE_HL[entry.state]
 		end

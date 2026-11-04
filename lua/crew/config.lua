@@ -1,6 +1,7 @@
 ---@class crew.Agent
 ---@field cmd string[] Command that starts the agent CLI
 ---@field env? table<string, string> Extra environment variables for the agent
+---@field hooks? boolean Inject crew state hooks into claude commands (default true), false to opt out
 
 ---@class crew.Config
 ---@field agents table<string, crew.Agent> Agent profiles, keyed by name

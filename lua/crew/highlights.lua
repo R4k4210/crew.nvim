@@ -7,6 +7,7 @@ M.groups = {
 	CrewPillCurrent = "TabLineSel",
 	CrewPillWork = "DiagnosticInfo",
 	CrewPillAsk = "DiagnosticWarn",
+	CrewPillAskBlink = "IncSearch", -- second phase of the ask blink
 	CrewPillDone = "DiagnosticOk",
 }
 
