@@ -15,8 +15,20 @@ end, {
 	end,
 })
 
+local group = vim.api.nvim_create_augroup("crew", { clear = true })
+
+-- :colorscheme runs :hi clear, which drops our links, so set them again.
+require("crew.highlights").setup()
+vim.api.nvim_create_autocmd("ColorScheme", {
+	group = group,
+	desc = "Restore crew pill highlight links",
+	callback = function()
+		require("crew.highlights").setup()
+	end,
+})
+
 vim.api.nvim_create_autocmd("TabClosed", {
-	group = vim.api.nvim_create_augroup("crew", { clear = true }),
+	group = group,
 	desc = "Forget crew workspaces whose tab was closed by hand",
 	callback = function()
 		require("crew.workspace").prune()

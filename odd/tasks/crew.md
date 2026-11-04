@@ -37,7 +37,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: two agents open in tabs 2 and 3, closing one keeps the numbering stable and neo-tree never appears in an agent tab.
 - [x] **L3 Keymaps.** The `<C-,>` prefix and direct `<C-1..9>` jumps in `n` and `t` modes, overridable from `opts.keys`. Concept: keymap modes and why terminal mode needs its own mappings.
   - Accept: every action works from inside a running agent without leaving insert mode first.
-- [ ] **L4 Lualine pills.** `require("crew.lualine")` returns a component with one pill per workspace. Concept: statusline expressions, highlight groups and `default = true` links.
+- [ ] **L4 Pills API and adapters.** `crew.status` owns the data (`list()`) and the pill format (`pills()`), shown as number plus state icon (`?` for ask, `●` work, `✓` done, from `opts.icons`). Two thin adapters render the same pills: `require("crew.bufferline").right` for `custom_areas` (with `show_tab_indicators = false`) and a native lualine component used as `"crew"`. Route: inline, teaching session continuing L1 to L3 with the code already loaded. Concept: a data core with ports per consumer, statusline expressions, highlight groups and `default = true` links.
   - Accept: pills render in the user lualine with OneDark Deep colors set from the user config only.
 - [ ] **L5 Agent state.** Each agent gets `CREW_WS` in its environment. Claude Code hooks (`UserPromptSubmit`, `Notification`, `Stop`) call `nvim --server "$NVIM" --remote-expr` to report `work`, `ask` or `done`. A toast appears when an agent waits on input. Concept: RPC between a child process and Neovim.
   - Accept: a permission prompt in workspace 3 turns its pill orange and pulses it while the user is in the editor.
@@ -66,6 +66,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - 2026-11-03: Prefix moved to `<C-,>` and `keys.jump = "<C-%d>"` added (direct jumps in `n` and `t`, `false` disables). The `<C-1>` test with `<C-v>` passed in the user Ghostty. Sidekick lost its `<C-,>` toggle (kept `<leader>aa`) to avoid a prefix clash. Verified headlessly that `<C-1..9>` and the `<C-,>` actions register in `n` and `t`.
 - 2026-11-03: Bug found by the user: `<C-2>` landed on the third tab. Cause: `:tabnew` opens next to the current tab, so opening a second agent from the editor put slot 3 before slot 2. Fix in `workspace.lua` (`tab_before`): open with `:Ntabnew` after the nearest lower slot or the home tab. RED then GREEN with a 10 check headless test (open from editor, open from agent, reuse a freed slot).
 - 2026-11-03: Decision by the user: slots compact when a workspace closes (closing 2 turns 3 into 2 and 4 into 3), so `<C-N>` always matches tab N. Tradeoff accepted: an agent no longer keeps a fixed number. `compact()` runs at the end of `remove()`, covering `:Crew close`, agent exit and manual `:tabclose`, and `last` follows the moved agent. RED then GREEN, 20 of 20 checks.
+
+- 2026-11-03: L1 to L3 committed on `feat/workspaces` (signed): `d57247e` chore, `8453db1` docs, `252110c` feat.
 
 ## Next step
 

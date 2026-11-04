@@ -8,8 +8,16 @@ local config = require("crew.config")
 ---@field tab integer Tabpage handle
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
+---@field state? crew.State Reported by the agent hooks (L5), nil until then
 
 local M = {}
+
+--- Tell tabline and statusline adapters that the workspace list changed.
+--- Tab switches redraw on their own; opening and closing do not always.
+local function changed()
+	vim.cmd.redrawtabline()
+	vim.cmd.redrawstatus({ bang = true })
+end
 
 local MAX_SLOT = 9
 
@@ -104,6 +112,7 @@ local function remove(ws)
 		vim.api.nvim_buf_delete(ws.buf, { force = true })
 	end
 	compact()
+	changed()
 end
 
 --- Open a new agent workspace.
@@ -149,6 +158,7 @@ function M.open(name)
 	require("crew.keymaps").attach(ws.buf)
 	M.workspaces[slot] = ws
 	focus(ws)
+	changed()
 	return ws
 end
 

@@ -6,6 +6,12 @@
 ---@field agents table<string, crew.Agent> Agent profiles, keyed by name
 ---@field default_agent string Agent opened when no name is given
 ---@field keys crew.Keys
+---@field icons crew.Icons
+
+---@class crew.Icons
+---@field work string Agent is running a task
+---@field ask string Agent waits on the user (permission prompt, question)
+---@field done string Agent finished and the user has not looked yet
 
 ---@class crew.Keys
 ---@field prefix string|false Prefix for global keymaps (normal and terminal mode), false to disable
@@ -25,6 +31,11 @@ M.defaults = {
 		prefix = "<C-,>",
 		jump = "<C-%d>",
 		stopinsert = false,
+	},
+	icons = {
+		work = "●",
+		ask = "?",
+		done = "✓",
 	},
 }
 
