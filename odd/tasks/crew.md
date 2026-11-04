@@ -60,7 +60,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - [x] **W3 No slot limit, sliding window.** Any number of agents; direct keys stay `<C-1>`..`<C-9>`, the rest through the picker or `:Crew jump N`. Pills show a window of `opts.pills.max` (default 5) around the current agent with `‹N` and `N›` counting the hidden ones; each overflow marker takes the most urgent state it hides (ask > done > work), so a hidden agent asking still shows and blinks.
 - [x] **W4 Mockup, README and help** for W1 to W3, then push.
 
-- [ ] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
+- [x] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
   - Accept: daily work runs from one terminal for a full day.
 
 ## Progress
@@ -117,6 +117,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - 2026-11-04: L9 done. mini.test suite in `tests/` (route: delegated writer for the port of 8 scratch suites, then parent spot check of `make test`): 118 cases in 9 files, each in a fresh child Neovim, `make test` / `make test_file`, deps cloned into `deps/` (`3d1e7e7`). `:checkhealth crew` (`6bce6b4`) and `doc/crew.txt` with a tag test (`docs: vim help`). Repo topics still pending (outward action, needs the user).
 
 - 2026-11-04: W1 to W3 implemented by a delegated writer, test first (RED 58 fails, then GREEN), one signed commit each: `ebc02c7` agents from 1 with the editor apart and no slot limit, `f0531c9` editor pill (`editor.label`, `CrewPillEditor`, `CrewPillEditorCurrent`), `4591f5a` sliding window (`pills.max`, `‹N` / `N›` markers with the most urgent hidden state, `CrewPillMore`). Parent spot check: `make test` 151 cases, Fails (0); user config with 15 agents on agent 10 renders `E ‹7 8 9 10 11 12 3›` with the right colors. W4: mockup (agents from 1, E pill, window markers, 7 agents), README, `:help crew` and screenshots updated.
+
+- 2026-11-04: L10 done. User nvim config committed on `feat/crew` (renamed from the unpushed `feat/sidekick`) as four signed commits (codeium removal, bufferline opts fix, sidekick to crew, lockfile) and opened as https://github.com/R4k4210/neovim-config/pull/3 into `mac`, one PR by user choice.
 
 ## Next step
 
