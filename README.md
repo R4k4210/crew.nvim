@@ -12,7 +12,7 @@ This section explains why agents live in tabs instead of splits. A split shares 
 
 Agents are numbered from 1 and the editor stands apart as the `E` pill, which `<C-,>` reaches from any agent. When an instance closes, the ones after it move down, so `<C-3>` always means the third agent you see.
 
-There is no limit on how many agents you open. Only five pills show at a time around the agent you are in, while markers like `‹2` and `3›` count the hidden ones on each side. Each marker takes the color of the most urgent agent it hides, so an agent asking for input still blinks when it is out of view.
+There is no limit on how many agents you open. Only five pills show at a time around the agent you are in, while a bare arrow, `‹` or `›`, marks the hidden ones on each side. Each arrow takes the color of the most urgent agent it hides, so an agent asking for input still blinks when it is out of view.
 
 ![An agent tab asking for permission](docs/images/agent.png)
 
@@ -60,6 +60,7 @@ All keys live under `<leader>a` except the tab switching ones, which need to wor
 | `<leader>ap` | normal | Pick an open instance |
 | `<leader>ai` | normal | Name the current instance |
 | `<leader>ax` | normal | Close the current instance |
+| `<leader>aX` | normal | Close every instance and return to the editor |
 | `<leader>af` | normal | Send `@path` of the current file, picking the instance |
 | `<leader>aF` | normal | Send the current file to the last instance |
 | `<leader>av` | visual | Send the selected lines with their location, picking the instance |
@@ -78,6 +79,7 @@ opts = {
     editor = "<C-0>", -- off by default, since <C-,> already reaches the editor
     new = "<leader>cn",
     close = "<leader>cx",
+    close_all = "<leader>cX",
     pick = "<leader>cp",
     rename = "<leader>ci",
     send_file = "<leader>cf",
@@ -171,7 +173,7 @@ Lualine has no room for the agent header, so turn on `header = "winbar"` in the 
 Every color comes from a group linked to a standard one with `default = true`, so crew follows your colorscheme and any `nvim_set_hl` call of yours wins.
 
 - Agent pills use `CrewPill`, `CrewPillCurrent`, `CrewPillWork`, `CrewPillAsk`, `CrewPillAskBlink` and `CrewPillDone`
-- The editor pill uses `CrewPillEditor` and `CrewPillEditorCurrent`, while the hidden agent markers use `CrewPillMore` when nothing they hide has a state
+- The editor pill uses `CrewPillEditor` and `CrewPillEditorCurrent`, while the hidden agent arrows use `CrewPillMore` when nothing they hide has a state
 - The header uses `CrewHeader` for the number and profile, `CrewHeaderName` for the name and `CrewHeaderDim` for the cwd, branch and labels
 
 Brightening the dim header text takes one line in your config.
@@ -188,6 +190,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 :Crew open [profile]   :Crew new        :Crew pick
 :Crew jump N           :Crew toggle     :Crew close [N]
 :Crew rename [name]    :Crew editor     :Crew list
+:Crew close all
 ```
 
 ## Status

@@ -120,6 +120,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: L10 done. User nvim config committed on `feat/crew` (renamed from the unpushed `feat/sidekick`) as four signed commits (codeium removal, bufferline opts fix, sidekick to crew, lockfile) and opened as https://github.com/R4k4210/neovim-config/pull/3 into `mac`, one PR by user choice.
 
+- 2026-11-04: Close all (`62f8129`: `workspace.close_all`, `:Crew close all`, `<leader>aX`) and boxless arrow markers (`710456f`: " ‹ " / " › " with no count, colored by the most urgent hidden state, blinking by color only; bufferline and lualine adapters put them on the bar background) by a delegated writer, test first. Parent spot check: 161 cases, Fails (0); real config shows `E ‹ 3 4 5 6 7 ›` with both arrows on the bufferline fill, and `<leader>aX` with 12 agents leaves only the editor. Mockup, README, help and screenshots updated.
+
 ## Next step
 
 L10: final user config cleanup (Sidekick already removed); commit the user config changes in the nvim repo when the user decides.

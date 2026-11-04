@@ -71,9 +71,9 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 .pill.ask.blink { color: var(--bg); background: var(--orange); }
 .pill.editor { color: var(--fg-light); background: #1d3b53; }
 .pill.editor.cur { color: var(--bg); background: var(--fg); }
-.pill.more { color: var(--fg-dark); background: var(--bg-dark); }
+.pill.more { color: var(--fg-dark); background: none; }
 .pill.more.ask { color: var(--orange); } .pill.more.done { color: var(--green); } .pill.more.work { color: var(--yellow); }
-.pill.more.ask.blink { color: var(--bg); background: var(--orange); }
+.pill.more.ask.blink { color: var(--fg-dark); background: none; } /* arrow only, no box */
 .gap { background: var(--bg-dark); }
 .status .gap { background: var(--bg); }
 
@@ -162,7 +162,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     <div class="note">
       <h2>Many agents, few pills</h2>
       <p>Agents are numbered from 1 and the editor is the <code>E</code> pill, which <code>&lt;C-,&gt;</code> reaches from any agent. There is no limit on agents, but only five pills show at a time around the one you are in.</p>
-      <p>Markers like <code>‹2</code> and <code>3›</code> count the hidden agents on each side and take the color of the most urgent one, so an agent asking for input still blinks when it is out of view.</p>
+      <p>A bare arrow, <code>‹</code> or <code>›</code>, marks hidden agents on each side and takes the color of the most urgent one, so an agent asking for input still blinks when it is out of view.</p>
     </div>
     <div class="note">
       <h2>What Neovim can draw</h2>
@@ -177,6 +177,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
         <code>&lt;leader&gt;an</code><span>new instance from a profile</span>
         <code>&lt;leader&gt;ai</code><span>name the current instance</span>
         <code>&lt;leader&gt;ax</code><span>close the current instance</span>
+        <code>&lt;leader&gt;aX</code><span>close every instance</span>
       </div>
     </div>
   </section>
@@ -239,14 +240,14 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     const [a, b] = range();
     const out = [`<button class="pill editor${S.ws === 0 ? " cur" : ""}" data-act="ws" data-n="0" aria-label="Editor"> E </button>`];
     const left = ids.filter((n) => n < a), right = ids.filter((n) => n > b);
-    if (left.length) out.push(marker(left, "‹" + left.length));
+    if (left.length) out.push(marker(left, "‹"));
     for (const n of ids.filter((n) => n >= a && n <= b)) {
       const st = inst[n].state;
       const ic = icon(st);
       const cls = ["pill", n === S.ws ? "cur" : st || "", blink(st, n)].join(" ");
       out.push(`<button class="${cls}" data-act="ws" data-n="${n}" aria-label="Agent ${n}${st ? ", " + st : ""}"> ${n} ${ic ? ic + " " : ""}</button>`);
     }
-    if (right.length) out.push(marker(right, right.length + "›"));
+    if (right.length) out.push(marker(right, "›"));
     return out.join(`<span class="gap"> </span>`);
   }
 
