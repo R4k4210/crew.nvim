@@ -31,8 +31,8 @@ M.defaults = {
 	keys = {
 		-- Not <C-Space>: macOS binds it to "select previous input source".
 		toggle = "<C-,>",
-		new = "<leader>cn",
-		close = "<leader>ce",
+		new = "<leader>an",
+		close = "<leader>ax",
 		jump = "<C-%d>",
 		stopinsert = false,
 	},

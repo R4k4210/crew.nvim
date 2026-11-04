@@ -73,6 +73,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-03: Bug found by the user: `<C-,>n` gave `E486: Pattern not found`. Cause: a chord only waits `timeoutlen` (300 ms in the user config) for its second key, then `n` runs alone as search next. Reproduced over RPC with a 600 ms gap. Decision by the user: no chords. `<C-,>` alone toggles (n, t), `<leader>cn` is crew-new and `<leader>ce` is crew-exit (n only, so Space still reaches the agent), `<C-1..9>` stay. Jumping to an empty slot is now silent. Headless check 10 of 10 plus L4 17 of 17. Note: the user config maps `<leader>c` alone to Delete Buffer, so a slow `<leader>c…` relies on which-key holding the key; which-key does not run headless, so that path needs a manual check.
 
+- 2026-11-03: Defaults moved to `<leader>an` (crew-new) and `<leader>ax` (crew-exit), since `<leader>c` collided with the user Delete Buffer. Sidekick removed from the user config early (L10 partly done; backup of its uncommitted spec kept in the session scratchpad). The user crew spec now passes `--settings {"tui":"default"}` to both claude profiles (fullscreen TUI keeps no scrollback in a terminal buffer) and maps `<leader>aa` to `:Crew toggle` through lazy `keys`. Lost with Sidekick: send this, file, selection and prompt. Pending: the user `<leader>c` reorganization (Delete Buffer to `<leader>x`, Rename File to `<leader>fR`) awaits confirmation.
+
 ## Next step
 
 User checks the L4 pills in bufferline and lualine, then OneDark Deep colors for `CrewPill*` and L5 agent state.
