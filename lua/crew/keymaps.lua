@@ -42,6 +42,14 @@ function M.setup()
 	set("n", keys.rename, function()
 		picker().rename()
 	end, "crew-rename")
+	set("n", keys.send_file, function()
+		require("crew.send").file()
+	end, "crew-send-file")
+	set("x", keys.send_selection, function()
+		local first, last = vim.fn.line("v"), vim.fn.line(".")
+		vim.cmd("normal! \27") -- leave visual mode before switching tabs
+		require("crew.send").selection(first, last)
+	end, "crew-send-selection")
 
 	-- Ctrl plus a digit has no legacy terminal encoding, so these only fire
 	-- where the kitty keyboard protocol is on.
