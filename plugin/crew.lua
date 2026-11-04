@@ -9,7 +9,7 @@ vim.api.nvim_create_user_command("Crew", function(opts)
 	require("crew.commands").run(opts)
 end, {
 	nargs = "*",
-	desc = "crew.nvim: list | open [agent] | jump N | editor | toggle | close [N] | config",
+	desc = "crew.nvim: list | open [agent] | resume [agent] | jump N | editor | toggle | close [N] | config",
 	complete = function(arglead, cmdline)
 		return require("crew.commands").complete(arglead, cmdline)
 	end,

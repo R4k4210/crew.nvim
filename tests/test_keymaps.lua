@@ -32,6 +32,11 @@ T["<leader>an is crew-new"] = function()
 	eq(desc("n", "<leader>an"), "crew-new")
 end
 
+T["<leader>aN is crew-resume"] = function()
+	setup()
+	eq(desc("n", "<leader>aN"), "crew-resume")
+end
+
 T["<leader>ax is crew-exit"] = function()
 	setup()
 	eq(desc("n", "<leader>ax"), "crew-exit")

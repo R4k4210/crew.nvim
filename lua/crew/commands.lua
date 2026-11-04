@@ -16,6 +16,9 @@ local subcommands = {
 	open = function(args)
 		require("crew.workspace").open(args[1])
 	end,
+	resume = function(args)
+		require("crew.workspace").resume(args[1])
+	end,
 	jump = function(args)
 		require("crew.workspace").jump(tonumber(args[1]))
 	end,
@@ -78,7 +81,7 @@ function M.complete(arglead, cmdline)
 		table.sort(names)
 		return starting_with(names, arglead)
 	end
-	if words[2] == "open" then
+	if words[2] == "open" or words[2] == "resume" then
 		local agents = vim.tbl_keys(require("crew.config").options.agents)
 		table.sort(agents)
 		return starting_with(agents, arglead)

@@ -2,6 +2,7 @@
 ---@field cmd string[] Command that starts the agent CLI
 ---@field env? table<string, string> Extra environment variables for the agent
 ---@field hooks? boolean Inject crew state hooks into claude commands (default true), false to opt out
+---@field resume? string[] Args appended to cmd to resume an earlier session. Claude commands default to { "--resume" }
 
 ---@class crew.Config
 ---@field agents table<string, crew.Agent> Agent profiles, keyed by name
@@ -27,6 +28,7 @@
 ---@field toggle? string|false Editor <-> last agent, in normal and terminal mode. A single key, never a chord, so it does not depend on timeoutlen
 ---@field editor? string|false Go to the editor, in normal and terminal mode. Off by default
 ---@field new? string|false Open a new agent (normal mode), asks which one when there are several profiles
+---@field resume? string|false Open an agent that resumes an earlier session (normal mode)
 ---@field close? string|false Close the current agent (normal mode)
 ---@field close_all? string|false Close every agent and go to the editor (normal mode)
 ---@field pick? string|false Pick an open instance from a list with names and usage (normal mode)
@@ -51,6 +53,7 @@ M.defaults = {
 		toggle = "<C-,>",
 		editor = false,
 		new = "<leader>an",
+		resume = "<leader>aN",
 		close = "<leader>ax",
 		close_all = "<leader>aX",
 		pick = "<leader>ap",

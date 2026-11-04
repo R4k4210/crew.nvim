@@ -57,6 +57,7 @@ All keys live under `<leader>a` except the tab switching ones, which need to wor
 | `<C-,>` | normal, terminal | Toggle between the editor and the last agent |
 | `<C-1>` to `<C-9>` | normal, terminal | Jump to agent N, silently ignored when it is empty |
 | `<leader>an` | normal | New instance, picking a profile when there are several |
+| `<leader>aN` | normal | New instance that resumes an earlier session through Claude's own picker |
 | `<leader>ap` | normal | Pick an open instance |
 | `<leader>ai` | normal | Name the current instance |
 | `<leader>ax` | normal | Close the current instance |
@@ -190,7 +191,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 :Crew open [profile]   :Crew new        :Crew pick
 :Crew jump N           :Crew toggle     :Crew close [N]
 :Crew rename [name]    :Crew editor     :Crew list
-:Crew close all
+:Crew close all        :Crew resume [profile]
 ```
 
 ## Status

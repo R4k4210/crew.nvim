@@ -82,6 +82,48 @@ T["close_all"]["closes every agent and lands in the editor"] = function()
 	eq(child.lua_get([[#vim.tbl_filter(function(b) return vim.bo[b].buftype == "terminal" end, vim.api.nvim_list_bufs())]]), 0)
 end
 
+T["resume"] = MiniTest.new_set()
+
+-- Records the command each agent starts with, then runs a plain shell.
+local function capture_cmd()
+	child.lua([[
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+	]])
+end
+
+T["resume"]["opens an agent with the profile resume args"] = function()
+	child.lua([[require("crew").setup({ agents = { sh = { cmd = { "sh" }, resume = { "--resume" } } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua("ws.resume()")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 1)
+	eq(child.lua_get("started[1]"), { "sh", "--resume" })
+end
+
+T["resume"]["warns and opens nothing when the profile cannot resume"] = function()
+	setup()
+	child.lua([[
+		warned = nil
+		vim.notify = function(msg) warned = msg end
+		ws.resume()
+	]])
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("warned"), "crew: agent sh has no resume args")
+end
+
+T["resume"]["a claude profile resumes with --resume without config"] = function()
+	child.lua([[require("crew").setup({ agents = { work = { cmd = { "/usr/local/bin/claude" }, hooks = false } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua("ws.resume()")
+	eq(child.lua_get("started[1]"), { "/usr/local/bin/claude", "--resume" })
+end
+
 T["session save"] = MiniTest.new_set()
 
 T["session save"]["on exit closes agents so the session holds editor files only"] = function()

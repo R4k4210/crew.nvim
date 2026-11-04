@@ -139,8 +139,9 @@ end
 
 --- Open a new agent workspace.
 ---@param name? string Agent profile, defaults to config.default_agent
+---@param args? string[] Extra arguments appended to the profile cmd
 ---@return crew.Workspace?
-function M.open(name)
+function M.open(name, args)
 	name = name or config.options.default_agent
 	local agent = config.options.agents[name]
 	if not agent then
@@ -167,11 +168,12 @@ function M.open(name)
 	-- CREW_ID tells the hooks who they are; Neovim adds $NVIM on its own.
 	-- CREW_STATUSLINE is the user's own statusLine, chained by crew's.
 	local hooks = require("crew.hooks")
+	local cmd = vim.list_extend(vim.deepcopy(agent.cmd), args or {})
 	local env = vim.tbl_extend("force", agent.env or {}, { CREW_ID = tostring(ws.id) })
 	if agent.hooks ~= false then
-		env.CREW_STATUSLINE = hooks.original_statusline(agent.cmd, agent.env or {})
+		env.CREW_STATUSLINE = hooks.original_statusline(cmd, agent.env or {})
 	end
-	ws.job = vim.fn.jobstart(hooks.command(agent.cmd, agent.hooks), {
+	ws.job = vim.fn.jobstart(hooks.command(cmd, agent.hooks), {
 		term = true,
 		env = env,
 		on_exit = function()
@@ -192,6 +194,33 @@ function M.open(name)
 	focus(ws)
 	changed()
 	return ws
+end
+
+--- Args that make an agent resume an earlier session: the profile's own,
+--- else --resume alone for claude commands, so Claude shows its picker.
+---@param agent crew.Agent
+---@return string[]?
+local function resume_args(agent)
+	if agent.resume then
+		return agent.resume
+	end
+	if vim.fs.basename(agent.cmd[1] or "") == "claude" then
+		return { "--resume" }
+	end
+end
+
+--- Open an agent that resumes an earlier session.
+---@param name? string Agent profile, defaults to config.default_agent
+---@return crew.Workspace?
+function M.resume(name)
+	name = name or config.options.default_agent
+	local agent = config.options.agents[name]
+	local args = agent and resume_args(agent)
+	if agent and not args then
+		vim.notify(("crew: agent %s has no resume args"):format(name), vim.log.levels.WARN)
+		return
+	end
+	return M.open(name, args)
 end
 
 --- Go to the editor (the home tab).

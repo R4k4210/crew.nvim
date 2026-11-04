@@ -62,6 +62,9 @@ agents                                                    *crew-opts-agents*
       env     table of extra environment variables
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
+      resume  list of strings appended to cmd to resume an earlier
+              session. Claude commands default to { "--resume" }, which
+              shows Claude's own session picker
 
 default_agent                                      *crew-opts-default_agent*
     Profile opened when none is given. Defaults to "claude", or to the first
@@ -96,6 +99,8 @@ the space bar has to reach the agent.
   (off)          n, t      editor               go to the editor, off since
                                                 <C-,> already does it
   <leader>an     n         new                  new instance from a profile
+  <leader>aN     n         resume               new instance that resumes an
+                                                earlier session
   <leader>ap     n         pick                 pick an open instance
   <leader>ai     n         rename               name the current instance
   <leader>ax     n         close                close the current instance
@@ -118,6 +123,8 @@ key that leaves terminal mode inside agent buffers, for example "jk".
                                                                        *:Crew*
 :Crew [list]          List open workspaces.
 :Crew open [profile]  Open an instance of a profile.
+:Crew resume [profile]
+                      Open an instance that resumes an earlier session.
 :Crew new             Pick a profile and open it.
 :Crew pick            Pick an open instance and jump to it.
 :Crew jump {N}        Jump to agent N, any number.
