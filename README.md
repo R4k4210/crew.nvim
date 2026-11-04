@@ -10,7 +10,9 @@ crew is opinionated. The defaults reflect one specific workflow (Claude Code, sn
 
 This section explains why agents live in tabs instead of splits. A split shares its columns with your code, so the agent renders cramped and every resize redraws its interface. A tab gives the agent the whole screen while your editor layout stays untouched in tab 1 where one key brings you back.
 
-Slot 1 is always your editor and slots 2 to 9 are agent instances. When an instance closes, the ones after it move down, so `<C-3>` always means the third tab you see.
+Agents are numbered from 1 and the editor stands apart as the `E` pill, which `<C-,>` reaches from any agent. When an instance closes, the ones after it move down, so `<C-3>` always means the third agent you see.
+
+There is no limit on how many agents you open. Only five pills show at a time around the agent you are in, while markers like `‹2` and `3›` count the hidden ones on each side. Each marker takes the color of the most urgent agent it hides, so an agent asking for input still blinks when it is out of view.
 
 ![An agent tab asking for permission](docs/images/agent.png)
 
@@ -53,7 +55,7 @@ All keys live under `<leader>a` except the tab switching ones, which need to wor
 | Key | Mode | Action |
 |---|---|---|
 | `<C-,>` | normal, terminal | Toggle between the editor and the last agent |
-| `<C-1>` to `<C-9>` | normal, terminal | Jump to a slot, silently ignored when it is empty |
+| `<C-1>` to `<C-9>` | normal, terminal | Jump to agent N, silently ignored when it is empty |
 | `<leader>an` | normal | New instance, picking a profile when there are several |
 | `<leader>ap` | normal | Pick an open instance |
 | `<leader>ai` | normal | Name the current instance |
@@ -73,6 +75,7 @@ Every entry in `opts.keys` takes a key string or `false` to turn it off. The exa
 opts = {
   keys = {
     toggle = "<C-,>",
+    editor = "<C-0>", -- off by default, since <C-,> already reaches the editor
     new = "<leader>cn",
     close = "<leader>cx",
     pick = "<leader>cp",
@@ -89,9 +92,20 @@ opts = {
 
 To map things yourself, set the keys to `false` and call the commands listed below.
 
+### Editor pill and pill window
+
+The editor pill label and the number of visible agent pills are options too.
+
+```lua
+opts = {
+  editor = { label = "E" }, -- "[E]", "Editor" or an icon
+  pills = { max = 5 },      -- agent pills shown around the current one
+}
+```
+
 ## Pickers
 
-crew opens its own snacks pickers with no preview window, so your global picker layout keeps its file preview everywhere else. The instance picker shows the slot, profile and name of each instance next to its usage, with a footer listing the keys that work inside it.
+crew opens its own snacks pickers with no preview window, so your global picker layout keeps its file preview everywhere else. The instance picker shows the number, profile and name of each instance next to its usage, with a footer listing the keys that work inside it.
 
 ![The instance picker](docs/images/picker.png)
 
@@ -123,7 +137,7 @@ crew ships thin adapters and leaves the wiring to you, so it never changes anoth
 
 ### With bufferline
 
-Pills replace the tab numbers on the right. Inside agent tabs the filter hides your editor buffers and the left area shows a header with the slot, profile, name, cwd, branch and usage meters of that agent.
+Pills replace the tab numbers on the right. Inside agent tabs the filter hides your editor buffers and the left area shows a header with the number, profile, name, cwd, branch and usage meters of that agent.
 
 ```lua
 options = {
@@ -156,8 +170,9 @@ Lualine has no room for the agent header, so turn on `header = "winbar"` in the 
 
 Every color comes from a group linked to a standard one with `default = true`, so crew follows your colorscheme and any `nvim_set_hl` call of yours wins.
 
-- Pills use `CrewPill`, `CrewPillCurrent`, `CrewPillWork`, `CrewPillAsk`, `CrewPillAskBlink` and `CrewPillDone`
-- The header uses `CrewHeader` for the slot and profile, `CrewHeaderName` for the name and `CrewHeaderDim` for the cwd, branch and labels
+- Agent pills use `CrewPill`, `CrewPillCurrent`, `CrewPillWork`, `CrewPillAsk`, `CrewPillAskBlink` and `CrewPillDone`
+- The editor pill uses `CrewPillEditor` and `CrewPillEditorCurrent`, while the hidden agent markers use `CrewPillMore` when nothing they hide has a state
+- The header uses `CrewHeader` for the number and profile, `CrewHeaderName` for the name and `CrewHeaderDim` for the cwd, branch and labels
 
 Brightening the dim header text takes one line in your config.
 
@@ -172,7 +187,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 ```
 :Crew open [profile]   :Crew new        :Crew pick
 :Crew jump N           :Crew toggle     :Crew close [N]
-:Crew rename [name]    :Crew list
+:Crew rename [name]    :Crew editor     :Crew list
 ```
 
 ## Status

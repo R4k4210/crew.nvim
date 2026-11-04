@@ -69,6 +69,11 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 .pill.done { color: var(--green); }
 .pill.ask { color: var(--orange); }
 .pill.ask.blink { color: var(--bg); background: var(--orange); }
+.pill.editor { color: var(--fg-light); background: #1d3b53; }
+.pill.editor.cur { color: var(--bg); background: var(--fg); }
+.pill.more { color: var(--fg-dark); background: var(--bg-dark); }
+.pill.more.ask { color: var(--orange); } .pill.more.done { color: var(--green); } .pill.more.work { color: var(--yellow); }
+.pill.more.ask.blink { color: var(--bg); background: var(--orange); }
 .gap { background: var(--bg-dark); }
 .status .gap { background: var(--bg); }
 
@@ -155,6 +160,11 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
       <p>Usage cells show <code>–</code> when an agent does not report them yet, like a Claude session before its first answer or a CLI such as codex that sends no limits.</p>
     </div>
     <div class="note">
+      <h2>Many agents, few pills</h2>
+      <p>Agents are numbered from 1 and the editor is the <code>E</code> pill, which <code>&lt;C-,&gt;</code> reaches from any agent. There is no limit on agents, but only five pills show at a time around the one you are in.</p>
+      <p>Markers like <code>‹2</code> and <code>3›</code> count the hidden agents on each side and take the color of the most urgent one, so an agent asking for input still blinks when it is out of view.</p>
+    </div>
+    <div class="note">
       <h2>What Neovim can draw</h2>
       <p>Everything here is a grid of cells with a color, a background and bold. Floats get rounded borders, but statusline pills are flat blocks, and the ask pill blinks by swapping its highlight on a timer.</p>
     </div>
@@ -162,7 +172,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
       <h2>Keys</h2>
       <div class="keys">
         <code>&lt;C-,&gt;</code><span>editor ⇄ last agent (normal and terminal)</span>
-        <code>&lt;C-1..9&gt;</code><span>jump to slot, silent when empty</span>
+        <code>&lt;C-1..9&gt;</code><span>jump to agent N, silent when empty</span>
         <code>&lt;leader&gt;ap</code><span>pick an open instance</span>
         <code>&lt;leader&gt;an</code><span>new instance from a profile</span>
         <code>&lt;leader&gt;ai</code><span>name the current instance</span>
@@ -189,12 +199,19 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     "codex": null,
   };
   let inst = {
+    1: { profile: "claude", name: "ops analysis", state: "work", ctx: 46, cwd: "~/.config/nvim", branch: "main" },
     2: { profile: "claude-work", name: "cuca", state: "ask", ctx: 71, cwd: "~/work/api", branch: "fix/invoice-rounding" },
-    3: { profile: "claude", name: "ops analysis", state: "work", ctx: 46, cwd: "~/.config/nvim", branch: "main" },
-    4: { profile: "codex", name: "zarasa", state: "done", ctx: null, cwd: "~/projects/dotfiles", branch: "main" },
+    3: { profile: "codex", name: "zarasa", state: "done", ctx: null, cwd: "~/projects/dotfiles", branch: "main" },
+    4: { profile: "claude", name: "docs", state: null, ctx: 12, cwd: "~/.config/nvim", branch: "main" },
+    5: { profile: "claude-work", name: "", state: null, ctx: 8, cwd: "~/work/api", branch: "main" },
+    6: { profile: "claude", name: "", state: null, ctx: 21, cwd: "~/projects/site", branch: "main" },
+    7: { profile: "claude-work", name: "release", state: "ask", ctx: 64, cwd: "~/work/api", branch: "release/2.4" },
   };
-  const S = { ws: 1, last: 2, float: null, sel: 0, input: "", frame: 0 };
-  const slots = () => [1, ...Object.keys(inst).map(Number).sort()];
+  // ws 0 is the editor; agents are numbered from 1
+  const S = { ws: 0, last: 2, float: null, sel: 0, input: "", frame: 0 };
+  const agents = () => Object.keys(inst).map(Number).sort((a, b) => a - b);
+  const MAX = 5; // pills.max
+  const RANK = { ask: 3, done: 2, work: 1 };
 
   const lvl = (p) => p == null ? "c-dim" : p >= 85 ? "c-red" : p >= 60 ? "c-yellow" : "c-green";
   const pct = (p) => `<span class="${lvl(p)}">${p == null ? "   –" : String(p).padStart(3) + "%"}</span>`;
@@ -203,19 +220,39 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     if (st === "work") return reduce ? "●" : SPIN[S.frame % SPIN.length];
     return ICON[st] || "";
   }
+  // Window of MAX agent pills around the current agent (or the last one).
+  function range() {
+    const ids = agents();
+    if (ids.length <= MAX) return [1, ids.length];
+    const center = S.ws || (inst[S.last] ? S.last : 1);
+    const start = Math.max(1, Math.min(center - Math.floor((MAX - 1) / 2), ids.length - MAX + 1));
+    return [start, start + MAX - 1];
+  }
+  const blink = (st, n) => st === "ask" && n !== S.ws && S.frame % 10 < 5 ? "blink" : "";
+  function marker(hidden, text) {
+    // a marker takes the most urgent state it hides: ask > done > work
+    const st = hidden.map((n) => inst[n].state).filter(Boolean).sort((a, b) => RANK[b] - RANK[a])[0];
+    return `<button class="pill more ${st || ""} ${blink(st)}" data-act="pick" aria-label="${hidden.length} more agents${st ? ", one " + st : ""}"> ${text} </button>`;
+  }
   function pills() {
-    return slots().map((n, i) => {
-      const st = n === 1 ? null : inst[n].state;
+    const ids = agents();
+    const [a, b] = range();
+    const out = [`<button class="pill editor${S.ws === 0 ? " cur" : ""}" data-act="ws" data-n="0" aria-label="Editor"> E </button>`];
+    const left = ids.filter((n) => n < a), right = ids.filter((n) => n > b);
+    if (left.length) out.push(marker(left, "‹" + left.length));
+    for (const n of ids.filter((n) => n >= a && n <= b)) {
+      const st = inst[n].state;
       const ic = icon(st);
-      const cls = ["pill", n === S.ws ? "cur" : st || "", st === "ask" && n !== S.ws && S.frame % 10 < 5 ? "blink" : ""].join(" ");
-      const gap = i ? `<span class="gap"> </span>` : "";
-      return `${gap}<button class="${cls}" data-act="ws" data-n="${n}" aria-label="Workspace ${n}${st ? ", " + st : ""}"> ${n} ${ic ? ic + " " : ""}</button>`;
-    }).join("");
+      const cls = ["pill", n === S.ws ? "cur" : st || "", blink(st, n)].join(" ");
+      out.push(`<button class="${cls}" data-act="ws" data-n="${n}" aria-label="Agent ${n}${st ? ", " + st : ""}"> ${n} ${ic ? ic + " " : ""}</button>`);
+    }
+    if (right.length) out.push(marker(right, right.length + "›"));
+    return out.join(`<span class="gap"> </span>`);
   }
 
   function tabline() {
     let left;
-    if (S.ws === 1) {
+    if (S.ws === 0) {
       left = `<span class="bufname"> 󰢱 status.lua </span><span class="slant"></span><span class="bufname on"> 󰢱 picker.lua <span class="c-green">●</span> </span><span class="slant"></span><span class="bufname"> 󰢱 keymaps.lua </span>`;
     } else {
       const a = inst[S.ws], l = limits[a.profile];
@@ -227,7 +264,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
   }
 
   function status() {
-    const left = S.ws === 1
+    const left = S.ws === 0
       ? `<span class="c-blue">▊</span> <span class="c-green">●</span> <span class="c-purple b">picker.lua</span> <span class="c-dim">1.2k  8:20</span>`
       : `<span class="c-blue">▊</span> <span class="c-purple">●</span> <span class="c-purple b">term://${esc(inst[S.ws].profile)}</span>`;
     $("status").innerHTML = `<span>${left}</span><span class="fill"></span>${pills()}<span class="fill"></span><span class="c-dim">lua_ls </span><span class="c-purple"> feat/workspaces </span><span class="c-blue">▊</span>`;
@@ -251,7 +288,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
      workspace.lua`;
 
   function agentView() {
-    if (S.ws === 1) return;
+    if (S.ws === 0) return;
     const a = inst[S.ws];
     const head = `<span class="c-dim">${esc(a.profile)} · ${a.cwd}</span>\n\n`;
     const body = {
@@ -295,27 +332,27 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 
   function toast() {
     const asking = Object.keys(inst).find((n) => inst[n].state === "ask" && Number(n) !== S.ws);
-    $("toast").hidden = !(asking && S.ws === 1 && !S.float);
+    $("toast").hidden = !(asking && S.ws === 0 && !S.float);
     if (asking) $("toast").innerHTML = `<span class="c-orange b">${asking} ${esc(inst[asking].name || inst[asking].profile)} needs input</span>\n<span class="c-dim">&lt;C-${asking}&gt; to answer</span>`;
   }
 
   function render() {
-    $("ws-1").classList.toggle("on", S.ws === 1);
-    $("ws-agent").classList.toggle("on", S.ws !== 1);
+    $("ws-1").classList.toggle("on", S.ws === 0);
+    $("ws-agent").classList.toggle("on", S.ws !== 0);
     tabline(); status(); agentView(); floatView(); toast();
-    $("cmdline").textContent = S.float ? "" : S.ws === 1 ? "" : "-- TERMINAL --";
+    $("cmdline").textContent = S.float ? "" : S.ws === 0 ? "" : "-- TERMINAL --";
   }
 
   function go(n) {
     n = Number(n);
-    if (n !== 1 && !inst[n]) return; // empty slot: stay put, no notification
-    if (S.ws !== 1) S.last = S.ws;
+    if (n !== 0 && !inst[n]) return; // empty slot: stay put, no notification
+    if (S.ws !== 0) S.last = S.ws;
     S.ws = n; S.float = null;
-    if (n !== 1) { S.last = n; if (inst[n].state === "done" || inst[n].state === "ask") { /* seen */ } }
+    if (n !== 0) S.last = n;
     render();
   }
   function open(kind) {
-    if (kind === "rename" && S.ws === 1) return;
+    if (kind === "rename" && S.ws === 0) return;
     S.float = kind; S.sel = 0;
     S.input = kind === "rename" ? inst[S.ws].name || "" : "";
     render();
@@ -323,21 +360,20 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
   function choose(n) {
     if (S.float === "pick") return go(n);
     if (S.float === "new") {
-      const free = [2,3,4,5,6,7,8,9].find((k) => !inst[k]);
-      if (!free) return;
+      const free = agents().length + 1; // no limit
       inst[free] = { profile: n, name: "", state: null, ctx: null, cwd: "~/.config/nvim", branch: "main" };
       return go(free);
     }
   }
   function close() {
-    if (S.ws === 1) return;
+    if (S.ws === 0) return;
     const keep = Object.keys(inst).map(Number).sort().filter((k) => k !== S.ws).map((k) => inst[k]);
-    inst = {}; keep.forEach((a, i) => { inst[i + 2] = a; }); // slots compact
-    S.ws = 1; S.last = 2; render();
+    inst = {}; keep.forEach((a, i) => { inst[i + 1] = a; }); // agents compact
+    S.ws = 0; S.last = 1; render();
   }
   function act(a, n) {
     if (a === "ws") go(n);
-    else if (a === "toggle") go(S.ws === 1 ? (inst[S.last] ? S.last : 1) : 1);
+    else if (a === "toggle") go(S.ws === 0 ? (inst[S.last] ? S.last : 0) : 0);
     else if (a === "close") close();
     else if (a === "choose") choose(n);
     else open(a);
@@ -379,7 +415,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
   if (params.get("float")) { S.float = params.get("float"); S.sel = Number(params.get("sel") || 0); }
   if (params.get("frame")) S.frame = Number(params.get("frame"));
 
-  if (!reduce) setInterval(() => { S.frame++; tabline(); status(); if (S.ws !== 1 && inst[S.ws].state === "work") agentView(); if (S.float === "pick") floatView(); }, 100);
+  if (!reduce) setInterval(() => { S.frame++; tabline(); status(); if (S.ws !== 0 && inst[S.ws].state === "work") agentView(); if (S.float === "pick") floatView(); }, 100);
   render();
 })();
 </script>
