@@ -192,7 +192,7 @@ end
 ---@param footer? string
 function M.instances(title, on_choice, footer)
 	local entries = vim.tbl_filter(function(e)
-		return e.slot > 1
+		return not e.editor
 	end, require("crew.status").list())
 	if #entries == 0 then
 		return

@@ -16,11 +16,7 @@ end
 
 ---@return crew.Workspace[]
 local function open_agents()
-	local ws, list = require("crew.workspace"), {}
-	for slot = 2, 9 do
-		list[#list + 1] = ws.workspaces[slot]
-	end
-	return list
+	return require("crew.workspace").ordered()
 end
 
 --- "last": the current agent, else the last visited, else the first open.

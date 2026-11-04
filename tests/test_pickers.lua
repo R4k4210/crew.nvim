@@ -12,7 +12,7 @@ local function setup()
 	]])
 end
 
--- zsh in slot 2 through picker.new, sh in slot 3 (current).
+-- zsh is agent 1 through picker.new, sh is agent 2 (current).
 local function open_two()
 	setup()
 	child.lua([[
@@ -45,7 +45,7 @@ end
 
 T["new"]["opens the chosen profile"] = function()
 	open_two()
-	eq(child.lua_get("ws.workspaces[2].agent"), "zsh")
+	eq(child.lua_get("ws.workspaces[1].agent"), "zsh")
 end
 
 T["rename"] = MiniTest.new_set()
@@ -56,41 +56,41 @@ T["rename"]["prompt names the slot and sets the name"] = function()
 		vim.ui.input = function(opts, on_confirm) prompt = opts.prompt; on_confirm("cuca") end
 		picker.rename()
 	]])
-	match(child.lua_get("prompt"), "3", true)
-	eq(child.lua_get("ws.workspaces[3].name"), "cuca")
+	match(child.lua_get("prompt"), "2", true)
+	eq(child.lua_get("ws.workspaces[2].name"), "cuca")
 	eq(child.lua_get('require("crew.status").list()[3].name'), "cuca")
 end
 
 T["rename"]["empty name clears it"] = function()
 	open_two()
 	child.lua([[
-		ws.workspaces[3].name = "cuca"
+		ws.workspaces[2].name = "cuca"
 		vim.ui.input = function(_, on_confirm) on_confirm("") end
 		picker.rename()
 	]])
-	eq(child.lua_get("ws.workspaces[3].name"), vim.NIL)
+	eq(child.lua_get("ws.workspaces[2].name"), vim.NIL)
 end
 
 T["rename"]["cancel keeps the name"] = function()
 	open_two()
 	child.lua([[
-		ws.workspaces[3].name = "keep"
+		ws.workspaces[2].name = "keep"
 		vim.ui.input = function(_, on_confirm) on_confirm(nil) end
 		picker.rename()
 	]])
-	eq(child.lua_get("ws.workspaces[3].name"), "keep")
+	eq(child.lua_get("ws.workspaces[2].name"), "keep")
 end
 
 T["rename"][":Crew rename sets a name with spaces"] = function()
 	open_two()
 	child.lua('vim.cmd("Crew rename ops analysis")')
-	eq(child.lua_get("ws.workspaces[3].name"), "ops analysis")
+	eq(child.lua_get("ws.workspaces[2].name"), "ops analysis")
 end
 
 T["rename"]["does nothing in the editor"] = function()
 	open_two()
 	child.lua([[
-		ws.jump(1)
+		ws.editor()
 		called = false
 		vim.ui.input = function() called = true end
 		picker.rename()
@@ -100,14 +100,14 @@ end
 
 T["pick"] = MiniTest.new_set()
 
--- Slot 2 asks and has usage, slot 3 is named and has none; pick chooses row 2.
+-- Agent 1 asks and has usage, agent 2 is named and has none; pick chooses row 2.
 local function pick_rows()
 	open_two()
 	child.lua([[
 		vim.cmd("Crew rename ops analysis")
-		ws.jump(1)
-		ws.workspaces[2].state = "ask"
-		ws.workspaces[2].usage = {
+		ws.editor()
+		ws.workspaces[1].state = "ask"
+		ws.workspaces[1].usage = {
 			ctx = 71,
 			five_hour = { pct = 87, resets_at = os.time() + 47 * 60 + 30 },
 			seven_day = { pct = 23, resets_at = os.time({ year = 2026, month = 11, day = 26, hour = 18, min = 0 }) },
@@ -127,7 +127,7 @@ end
 
 T["pick"]["row has slot, profile and usage"] = function()
 	local row = pick_rows()[1]
-	match(row, "^2  zsh")
+	match(row, "^1  zsh")
 	match(row, "ctx  71%%")
 	match(row, "5h  87%% ↻ 47m")
 	match(row, "wk  23%% ↻ nov 26 18:00")
@@ -155,13 +155,13 @@ end
 
 T["pick"]["jumps to the chosen instance"] = function()
 	pick_rows()
-	eq(child.lua_get("ws.current() == ws.workspaces[3]"), true)
+	eq(child.lua_get("ws.current() == ws.workspaces[2]"), true)
 end
 
 T["pick"]["does nothing with no instances"] = function()
 	open_two()
 	child.lua([[
-		ws.close(2); ws.close(2)
+		ws.close(1); ws.close(1)
 		called = false
 		vim.ui.select = function() called = true end
 		picker.pick()

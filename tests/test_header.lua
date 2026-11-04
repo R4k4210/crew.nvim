@@ -17,7 +17,7 @@ local function setup(opts)
 	]], { opts })
 end
 
--- One agent in slot 2, named "cuca", with usage, branch read.
+-- Agent 1, named "cuca", with usage, branch read.
 local function agent()
 	setup()
 	child.lua([[
@@ -63,7 +63,7 @@ T["header"] = MiniTest.new_set()
 
 T["header"]["starts with slot, profile and name"] = function()
 	agent()
-	match(child.lua_get("h"), "^ 2 claude cuca")
+	match(child.lua_get("h"), "^ 1 claude cuca")
 end
 
 T["header"]["shows the cwd shortened"] = function()
@@ -159,7 +159,7 @@ end
 
 T["winbar"]["is not set on the editor window"] = function()
 	winbar_agent()
-	child.lua("ws.jump(1)")
+	child.lua("ws.editor()")
 	no_match(child.lua_get('vim.wo.winbar or ""'), "crew", true)
 end
 
@@ -171,7 +171,7 @@ local function fill_agent()
 	child.lua([[
 		vim.api.nvim_set_hl(0, "BufferLineFill", { bg = 0x070707 })
 		vim.api.nvim_set_hl(0, "Normal", { fg = 0xaaaaaa, bg = 0x111111 })
-		ws.jump(1); ws.jump(2)
+		ws.editor(); ws.jump(1)
 	]])
 end
 

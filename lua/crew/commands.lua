@@ -4,13 +4,9 @@ local M = {}
 ---@type table<string, fun(args: string[])>
 local subcommands = {
 	list = function()
-		local ws = require("crew.workspace")
-		local lines = { "1 editor" }
-		for slot = 2, 9 do
-			local w = ws.workspaces[slot]
-			if w then
-				lines[#lines + 1] = ("%d %s"):format(slot, w.agent)
-			end
+		local lines = { "editor" }
+		for _, w in ipairs(require("crew.workspace").ordered()) do
+			lines[#lines + 1] = ("%d %s"):format(w.slot, w.agent)
 		end
 		print(table.concat(lines, "\n"))
 	end,
@@ -22,6 +18,9 @@ local subcommands = {
 	end,
 	jump = function(args)
 		require("crew.workspace").jump(tonumber(args[1]))
+	end,
+	editor = function()
+		require("crew.workspace").editor()
 	end,
 	toggle = function()
 		require("crew.workspace").toggle()

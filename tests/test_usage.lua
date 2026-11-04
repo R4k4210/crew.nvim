@@ -49,13 +49,13 @@ end
 
 T["usage"] = MiniTest.new_set()
 
--- Slots 2, 3 (profile a) and 4 (profile b); slot 2 reported usage.
+-- Agents 1, 2 (profile a) and 3 (profile b); agent 1 reported usage.
 local function usage_setup()
 	child.lua([[
 		require("crew").setup({ agents = { a = { cmd = { "sh" } }, b = { cmd = { "sh" } } } })
 		ws, state, status = require("crew.workspace"), require("crew.state"), require("crew.status")
 		ws.open("a"); ws.open("a"); ws.open("b")
-		a1, a2, b1 = ws.workspaces[2], ws.workspaces[3], ws.workspaces[4]
+		a1, a2, b1 = ws.workspaces[1], ws.workspaces[2], ws.workspaces[3]
 		reset = os.time() + 3600
 		state.usage(a1.id, { ctx = 71, five_hour = { pct = 87, resets_at = reset }, seven_day = { pct = 23, resets_at = reset + 86400 } })
 		usage = function(slot) for _, e in ipairs(status.list()) do if e.slot == slot then return e.usage or {} end end end
@@ -64,26 +64,26 @@ end
 
 T["usage"]["ctx belongs to the reporting instance"] = function()
 	usage_setup()
-	eq(child.lua_get("usage(2).ctx"), 71)
-	eq(child.lua_get("usage(3).ctx"), vim.NIL)
+	eq(child.lua_get("usage(1).ctx"), 71)
+	eq(child.lua_get("usage(2).ctx"), vim.NIL)
 end
 
 T["usage"]["limits are shared by the profile"] = function()
 	usage_setup()
-	eq(child.lua_get("usage(3).five_hour.pct"), 87)
-	eq(child.lua_get("usage(3).seven_day.pct"), 23)
+	eq(child.lua_get("usage(2).five_hour.pct"), 87)
+	eq(child.lua_get("usage(2).seven_day.pct"), 23)
 end
 
 T["usage"]["limits do not leak to another profile"] = function()
 	usage_setup()
-	eq(child.lua_get("usage(4).five_hour"), vim.NIL)
+	eq(child.lua_get("usage(3).five_hour"), vim.NIL)
 end
 
 T["usage"]["newer limits win for every instance of the profile"] = function()
 	usage_setup()
 	child.lua("state.usage(a2.id, { ctx = 12, five_hour = { pct = 90, resets_at = reset } })")
-	eq(child.lua_get("usage(2).five_hour.pct"), 90)
-	eq(child.lua_get("usage(2).ctx"), 71)
+	eq(child.lua_get("usage(1).five_hour.pct"), 90)
+	eq(child.lua_get("usage(1).ctx"), 71)
 end
 
 T["epoch"] = MiniTest.new_set()

@@ -55,6 +55,37 @@ T["<C-3> jump exists in normal and terminal mode"] = function()
 	eq(type(desc("t", "<C-3>")), "string")
 end
 
+T["<C-1> jumps to the first agent"] = function()
+	setup()
+	eq(desc("n", "<C-1>"), "crew: go to agent 1")
+	eq(desc("t", "<C-9>"), "crew: go to agent 9")
+end
+
+T["keys.editor"] = MiniTest.new_set()
+
+T["keys.editor"]["is disabled by default"] = function()
+	setup()
+	eq(child.lua_get('require("crew.config").options.keys.editor'), false)
+	eq(child.lua_get([[#vim.tbl_filter(function(m) return m.desc == "crew: go to editor" end, vim.api.nvim_get_keymap("n"))]]), 0)
+end
+
+T["keys.editor"]["is mapped in normal and terminal mode when set"] = function()
+	setup({ agents = { sh = { cmd = { "sh" } } }, keys = { editor = "<C-0>" } })
+	eq(desc("n", "<C-0>"), "crew: go to editor")
+	eq(desc("t", "<C-0>"), "crew: go to editor")
+end
+
+T["keys.editor"]["goes to the editor"] = function()
+	setup({ agents = { sh = { cmd = { "sh" } } }, keys = { editor = "<C-0>" } })
+	child.lua([[
+		ws = require("crew.workspace")
+		home = vim.api.nvim_get_current_tabpage()
+		ws.open("sh")
+		vim.fn.maparg("<C-0>", "n", false, true).callback()
+	]])
+	eq(child.lua_get("vim.api.nvim_get_current_tabpage() == home"), true)
+end
+
 T["jump to a missing slot"] = MiniTest.new_set()
 
 T["jump to a missing slot"]["is silent"] = function()

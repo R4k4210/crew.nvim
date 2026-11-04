@@ -17,6 +17,7 @@
 
 ---@class crew.Keys
 ---@field toggle? string|false Editor <-> last agent, in normal and terminal mode. A single key, never a chord, so it does not depend on timeoutlen
+---@field editor? string|false Go to the editor, in normal and terminal mode. Off by default
 ---@field new? string|false Open a new agent (normal mode), asks which one when there are several profiles
 ---@field close? string|false Close the current agent (normal mode)
 ---@field pick? string|false Pick an open instance from a list with names and usage (normal mode)
@@ -25,7 +26,7 @@
 ---@field send_selection? string|false Send the selected lines with their location to the agent (visual mode)
 ---@field send_file_last? string|false Like send_file, straight to the last agent with no picker
 ---@field send_selection_last? string|false Like send_selection, straight to the last agent with no picker
----@field jump? string|false Direct jump to slot N, a format string with %d (e.g. "<C-%d>"), false to disable. Needs a terminal with the kitty keyboard protocol
+---@field jump? string|false Direct jump to agent N (1..9), a format string with %d (e.g. "<C-%d>"), false to disable. Needs a terminal with the kitty keyboard protocol
 ---@field stopinsert? string|false Key that leaves terminal mode inside agent buffers, e.g. "jk"
 
 local M = {}
@@ -39,6 +40,7 @@ M.defaults = {
 	keys = {
 		-- Not <C-Space>: macOS binds it to "select previous input source".
 		toggle = "<C-,>",
+		editor = false,
 		new = "<leader>an",
 		close = "<leader>ax",
 		pick = "<leader>ap",

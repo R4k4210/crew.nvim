@@ -25,6 +25,9 @@ function M.setup()
 	set({ "n", "t" }, keys.toggle, function()
 		ws().toggle()
 	end, "crew: editor <-> last agent")
+	set({ "n", "t" }, keys.editor, function()
+		ws().editor()
+	end, "crew: go to editor")
 
 	-- Normal mode only: in terminal mode <leader> (Space) must reach the agent.
 	local picker = function()
@@ -61,7 +64,7 @@ function M.setup()
 		for slot = 1, 9 do
 			set({ "n", "t" }, keys.jump:format(slot), function()
 				ws().jump(slot)
-			end, slot == 1 and "crew: go to editor" or ("crew: go to workspace " .. slot))
+			end, "crew: go to agent " .. slot)
 		end
 	end
 end

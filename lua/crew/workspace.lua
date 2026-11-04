@@ -1,10 +1,11 @@
--- Workspaces: slot 1 is the editor (the "home" tab), slots 2..9 are agents.
+-- Workspaces: agents numbered 1..N with no upper limit. The editor (the
+-- "home" tab) stands apart and has no number.
 -- Each agent lives in its own tabpage with a single terminal window.
 local config = require("crew.config")
 
 ---@class crew.Workspace
 ---@field id integer Stable for the whole life of the workspace, unlike slot. Hooks report with it
----@field slot integer Number shown to the user (2..9), renumbered when a workspace closes
+---@field slot integer Number shown to the user (1..N), renumbered when a workspace closes
 ---@field agent string Agent profile name
 ---@field tab integer Tabpage handle
 ---@field buf integer Terminal buffer
@@ -33,8 +34,6 @@ local function changed()
 	vim.cmd.redrawstatus({ bang = true })
 end
 
-local MAX_SLOT = 9
-
 ---@type table<integer, crew.Workspace>
 M.workspaces = {}
 ---@type integer? Tabpage of the editor
@@ -44,13 +43,24 @@ M.last = nil
 
 local next_id = 0
 
----@return integer?
+--- Workspaces in slot order. Slots have no holes once compacted, but a
+--- workspace may be gone for a moment while it is being removed.
+---@return crew.Workspace[]
+function M.ordered()
+	local list = vim.tbl_values(M.workspaces)
+	table.sort(list, function(a, b)
+		return a.slot < b.slot
+	end)
+	return list
+end
+
+---@return integer
 local function free_slot()
-	for slot = 2, MAX_SLOT do
-		if not M.workspaces[slot] then
-			return slot
-		end
+	local slot = 1
+	while M.workspaces[slot] do
+		slot = slot + 1
 	end
+	return slot
 end
 
 --- Tab number a new workspace must follow, so tab order matches slot order.
@@ -58,7 +68,7 @@ end
 ---@param slot integer
 ---@return integer
 local function tab_before(slot)
-	for s = slot - 1, 2, -1 do
+	for s = slot - 1, 1, -1 do
 		local ws = M.workspaces[s]
 		if ws and vim.api.nvim_tabpage_is_valid(ws.tab) then
 			return vim.api.nvim_tabpage_get_number(ws.tab)
@@ -88,19 +98,14 @@ local function focus(ws)
 	vim.cmd.startinsert()
 end
 
---- Renumber workspaces to 2..n with no holes, keeping their order, so
---- jump(N) always matches tab N. M.last follows the agent it pointed to.
+--- Renumber workspaces to 1..n with no holes, keeping their order, so
+--- jump(N) always matches agent tab N. M.last follows the agent it pointed to.
 local function compact()
 	local last = M.last and M.workspaces[M.last]
-	local ordered = {}
-	for slot = 2, MAX_SLOT do
-		if M.workspaces[slot] then
-			ordered[#ordered + 1] = M.workspaces[slot]
-		end
-	end
+	local ordered = M.ordered()
 	M.workspaces = {}
 	for i, ws in ipairs(ordered) do
-		ws.slot = i + 1
+		ws.slot = i
 		M.workspaces[ws.slot] = ws
 	end
 	M.last = last and last.slot or nil
@@ -120,7 +125,7 @@ local function remove(ws)
 
 	if vim.api.nvim_tabpage_is_valid(ws.tab) and #vim.api.nvim_list_tabpages() > 1 then
 		if vim.api.nvim_get_current_tabpage() == ws.tab then
-			M.jump(1)
+			M.editor()
 		end
 		vim.cmd.tabclose(vim.api.nvim_tabpage_get_number(ws.tab))
 	end
@@ -143,10 +148,6 @@ function M.open(name)
 		return
 	end
 	local slot = free_slot()
-	if not slot then
-		vim.notify("crew: all workspaces are taken", vim.log.levels.WARN)
-		return
-	end
 
 	if not M.current() then
 		M.home = vim.api.nvim_get_current_tabpage()
@@ -193,16 +194,17 @@ function M.open(name)
 	return ws
 end
 
---- Jump to a workspace. Slot 1 is the editor.
+--- Go to the editor (the home tab).
+function M.editor()
+	if M.home and vim.api.nvim_tabpage_is_valid(M.home) then
+		vim.api.nvim_set_current_tabpage(M.home)
+	end
+	vim.cmd.stopinsert()
+end
+
+--- Jump to agent N.
 ---@param slot? integer
 function M.jump(slot)
-	if slot == 1 then
-		if M.home and vim.api.nvim_tabpage_is_valid(M.home) then
-			vim.api.nvim_set_current_tabpage(M.home)
-		end
-		vim.cmd.stopinsert()
-		return
-	end
 	local ws = slot and M.workspaces[slot]
 	if not ws then
 		return -- empty slot: stay put, a notification here is just noise
@@ -213,9 +215,9 @@ end
 --- Editor <-> last agent. Opens the default agent when none exists.
 function M.toggle()
 	if M.current() then
-		return M.jump(1)
+		return M.editor()
 	end
-	local ws = (M.last and M.workspaces[M.last]) or select(2, next(M.workspaces))
+	local ws = (M.last and M.workspaces[M.last]) or M.workspaces[1]
 	if ws then
 		focus(ws)
 	else

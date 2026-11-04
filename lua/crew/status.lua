@@ -7,13 +7,14 @@ local workspace = require("crew.workspace")
 ---@alias crew.State "work"|"ask"|"done"
 
 ---@class crew.Entry
----@field slot integer 1 is the editor, 2..9 are agents
+---@field editor? boolean True for the editor entry, which has no slot
+---@field slot? integer Agent number 1..N, nil for the editor
 ---@field agent? string Agent profile, nil for the editor
 ---@field state? crew.State
 ---@field current boolean True for the tab the user is in
 
 ---@class crew.Pill
----@field slot integer
+---@field slot? integer Agent number, nil for the editor
 ---@field text string Ready to render, e.g. " 2 ? "
 ---@field hl string Highlight group name
 
@@ -34,27 +35,24 @@ local function usage_of(ws)
 	return next(usage) and usage or nil
 end
 
---- Workspaces in slot order, editor first. Empty when no agent is open,
---- so adapters render nothing until there is something to switch to.
+--- The editor first, then agents in slot order. Empty when no agent is
+--- open, so adapters render nothing until there is something to switch to.
 ---@return crew.Entry[]
 function M.list()
 	if next(workspace.workspaces) == nil then
 		return {}
 	end
 	local current = workspace.current()
-	local entries = { { slot = 1, current = current == nil } }
-	for slot = 2, 9 do
-		local ws = workspace.workspaces[slot]
-		if ws then
-			entries[#entries + 1] = {
-				slot = slot,
-				agent = ws.agent,
-				state = ws.state,
-				name = ws.name,
-				usage = usage_of(ws),
-				current = ws == current,
-			}
-		end
+	local entries = { { editor = true, current = current == nil } }
+	for _, ws in ipairs(workspace.ordered()) do
+		entries[#entries + 1] = {
+			slot = ws.slot,
+			agent = ws.agent,
+			state = ws.state,
+			name = ws.name,
+			usage = usage_of(ws),
+			current = ws == current,
+		}
 	end
 	return entries
 end
@@ -81,11 +79,13 @@ function M.pills()
 		elseif entry.state then
 			hl = STATE_HL[entry.state]
 		end
-		pills[#pills + 1] = {
-			slot = entry.slot,
-			text = icon and (" %d %s "):format(entry.slot, icon) or (" %d "):format(entry.slot),
-			hl = hl,
-		}
+		local text
+		if entry.editor then
+			text = " E "
+		else
+			text = icon and (" %d %s "):format(entry.slot, icon) or (" %d "):format(entry.slot)
+		end
+		pills[#pills + 1] = { slot = entry.slot, text = text, hl = hl }
 	end
 	return pills
 end

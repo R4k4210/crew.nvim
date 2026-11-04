@@ -11,7 +11,7 @@ local function setup()
 	]])
 end
 
--- Two agents: slots 2 and 3, slot 3 is current.
+-- Two agents: 1 and 2, agent 2 is current.
 local function open_two()
 	setup()
 	child.lua("ws.open(); ws.open()")
@@ -33,10 +33,10 @@ T["pills"]["one per workspace, editor included"] = function()
 	eq(child.lua_get("#status.pills()"), 3)
 end
 
-T["pills"]["text has the number only"] = function()
+T["pills"]["agent text has the number only"] = function()
 	open_two()
-	eq(child.lua_get("status.pills()[1].text"), " 1 ")
-	eq(child.lua_get("status.pills()[2].text"), " 2 ")
+	eq(child.lua_get("status.pills()[2].text"), " 1 ")
+	eq(child.lua_get("status.pills()[3].text"), " 2 ")
 end
 
 T["pills"]["current uses CrewPillCurrent, others CrewPill"] = function()
@@ -47,29 +47,36 @@ end
 
 T["pills"]["ask shows ? with CrewPillAsk"] = function()
 	open_two()
-	child.lua('ws.workspaces[2].state = "ask"')
-	eq(child.lua_get("status.pills()[2].text"), " 2 ? ")
+	child.lua('ws.workspaces[1].state = "ask"')
+	eq(child.lua_get("status.pills()[2].text"), " 1 ? ")
 	eq(child.lua_get("status.pills()[2].hl"), "CrewPillAsk")
 end
 
 T["pills"]["done shows a check"] = function()
 	open_two()
-	child.lua('ws.workspaces[2].state = "done"')
-	eq(child.lua_get("status.pills()[2].text"), " 2 ✓ ")
+	child.lua('ws.workspaces[1].state = "done"')
+	eq(child.lua_get("status.pills()[2].text"), " 1 ✓ ")
 end
 
 T["pills"]["closing compacts them"] = function()
 	open_two()
-	child.lua("ws.close(2)")
+	child.lua("ws.close(1)")
 	eq(child.lua_get("#status.pills()"), 2)
 end
 
 T["list exposes state and agent"] = function()
 	open_two()
-	child.lua('ws.workspaces[2].state = "done"')
+	child.lua('ws.workspaces[1].state = "done"')
 	eq(child.lua_get("status.list()[2].state"), "done")
 	eq(child.lua_get("status.list()[2].agent"), "sh")
-	eq(child.lua_get("status.list()[1].slot"), 1)
+	eq(child.lua_get("status.list()[2].slot"), 1)
+end
+
+T["list starts with the editor, with no slot"] = function()
+	open_two()
+	eq(child.lua_get("status.list()[1].editor"), true)
+	eq(child.lua_get("status.list()[1].slot"), vim.NIL)
+	eq(child.lua_get("status.list()[3].slot"), 2)
 end
 
 T["highlights"] = MiniTest.new_set()
@@ -99,14 +106,14 @@ end
 
 T["lualine component"] = function()
 	open_two()
-	child.lua('ws.workspaces[2].state = "done"')
+	child.lua('ws.workspaces[1].state = "done"')
 	local out = child.lua_get([[(function()
 		local Comp = require("lualine.components.crew")
 		local comp = Comp({ self = { section = "c" }, component_separators = "", section_separators = "" })
 		return comp:update_status()
 	end)()]])
 	match(out, "%#CrewPillCurrent#", true)
-	match(out, " 2 ", true)
+	match(out, " 1 ", true)
 end
 
 return T

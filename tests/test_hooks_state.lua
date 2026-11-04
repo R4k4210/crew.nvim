@@ -60,7 +60,7 @@ end
 
 T["state"] = MiniTest.new_set()
 
--- Slots 2 (a) and 3 (b), back in the editor; toasts are recorded in `notes`.
+-- Agents 1 (a) and 2 (b), back in the editor; toasts are recorded in `notes`.
 local function two_agents()
 	child.lua([[
 		require("crew").setup({ agents = { sh = { cmd = { "sh" } } } })
@@ -68,8 +68,8 @@ local function two_agents()
 		notes = {}
 		vim.notify = function(msg, level) notes[#notes + 1] = { msg, level } end
 		ws.open("sh"); ws.open("sh")
-		a, b = ws.workspaces[2], ws.workspaces[3]
-		ws.jump(1)
+		a, b = ws.workspaces[1], ws.workspaces[2]
+		ws.editor()
 	]])
 end
 
@@ -97,7 +97,7 @@ T["state"]["ask while away shows a toast"] = function()
 	two_agents()
 	child.lua('state.report(a.id, "Notification", { notification_type = "permission_prompt" })')
 	eq(child.lua_get("#notes"), 1)
-	match(child.lua_get("notes[1][1]"), "2", true)
+	match(child.lua_get("notes[1][1]"), "1 sh", true)
 end
 
 T["state"]["unknown id is ignored"] = function()
@@ -109,7 +109,7 @@ end
 T["state"]["no toast for the agent you are looking at"] = function()
 	two_agents()
 	child.lua([[
-		ws.jump(3)
+		ws.jump(2)
 		state.report(b.id, "Notification", { notification_type = "permission_prompt" })
 	]])
 	eq(child.lua_get("#notes"), 0)
@@ -117,14 +117,14 @@ end
 
 T["state"]["visiting a done agent clears done"] = function()
 	two_agents()
-	child.lua('state.report(a.id, "Stop", {}); ws.jump(2)')
+	child.lua('state.report(a.id, "Stop", {}); ws.jump(1)')
 	eq(child.lua_get("a.state"), vim.NIL)
 end
 
 T["state"]["id survives compaction"] = function()
 	two_agents()
-	child.lua("ws.close(2)")
-	eq(child.lua_get("ws.workspaces[2] == b"), true)
+	child.lua("ws.close(1)")
+	eq(child.lua_get("ws.workspaces[1] == b"), true)
 	child.lua('state.report(b.id, "Stop", {})')
 	eq(child.lua_get("b.state"), "done")
 end
@@ -150,11 +150,11 @@ T["blink"]["ask pill alternates between two highlights"] = function()
 		require("crew").setup({ agents = { sh = { cmd = { "sh" } } } })
 		ws, state, status = require("crew.workspace"), require("crew.state"), require("crew.status")
 		ws.open("sh")
-		ws.workspaces[2].state = "ask"
-		ws.jump(1)
+		ws.workspaces[1].state = "ask"
+		ws.editor()
 	]])
 	local hls = child.lua_get([[(function()
-		local function ask_hl() for _, p in ipairs(status.pills()) do if p.slot == 2 then return p.hl end end end
+		local function ask_hl() for _, p in ipairs(status.pills()) do if p.slot == 1 then return p.hl end end end
 		state.blink = false
 		local h1 = ask_hl()
 		state.blink = true

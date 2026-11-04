@@ -94,7 +94,7 @@ local function one_agent()
 	child.lua([[
 		ws.open("sh")
 		agent = ws.current()
-		ws.jump(1)
+		ws.editor()
 	]])
 end
 
@@ -145,13 +145,13 @@ end
 
 T["send targets"] = MiniTest.new_set()
 
--- Slots 2, 3, 4 open; last visited is 3; back in the editor.
+-- Agents 1, 2, 3 open; last visited is 2; back in the editor.
 local function three_agents()
 	send_setup()
 	child.lua([[
 		ws.open("sh"); ws.open("sh"); ws.open("sh")
-		a2, a3, a4 = ws.workspaces[2], ws.workspaces[3], ws.workspaces[4]
-		ws.jump(3); ws.jump(1)
+		a1, a2, a3 = ws.workspaces[1], ws.workspaces[2], ws.workspaces[3]
+		ws.jump(2); ws.editor()
 	]])
 end
 
@@ -159,15 +159,15 @@ T["send targets"]["several agents: asks which one"] = function()
 	three_agents()
 	child.lua("choice = 1; send.file()")
 	eq(child.lua_get("asked"), 1)
-	eq(child.lua_get("sent[1][1] == a2.job"), true)
-	eq(child.lua_get("ws.current() == a2"), true)
+	eq(child.lua_get("sent[1][1] == a1.job"), true)
+	eq(child.lua_get("ws.current() == a1"), true)
 end
 
 T["send targets"]["last does not ask"] = function()
 	three_agents()
 	child.lua('send.file("last")')
 	eq(child.lua_get("asked"), 0)
-	eq(child.lua_get("sent[1][1] == a3.job"), true)
+	eq(child.lua_get("sent[1][1] == a2.job"), true)
 end
 
 T["send targets"]["cancelling the picker sends nothing"] = function()
@@ -183,12 +183,12 @@ end
 T["send targets"]["one agent: no picker, sent directly"] = function()
 	three_agents()
 	child.lua([[
-		ws.close(3); ws.close(3)
-		ws.jump(1)
+		ws.close(2); ws.close(2)
+		ws.editor()
 		send.selection(1, 1)
 	]])
 	eq(child.lua_get("asked"), 0)
-	eq(child.lua_get("sent[1][1] == a2.job"), true)
+	eq(child.lua_get("sent[1][1] == a1.job"), true)
 end
 
 return T
