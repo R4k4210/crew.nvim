@@ -76,7 +76,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
 .main { position: relative; overflow: hidden; }
 .ws { position: absolute; inset: 0; display: none; padding: 0; }
 .ws.on { display: block; }
-.editor { display: grid; grid-template-columns: 1fr 32ch; }
+.editor.on { display: grid; grid-template-columns: 1fr 32ch; }
 .code { padding-top: 4px; overflow: hidden; }
 .ln.cur { background: var(--bg-light); }
 .tree { background: var(--bg-dark); border-left: 1px solid var(--bg-lighter); padding: 4px 1ch; overflow: hidden; }
@@ -197,7 +197,7 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
   const slots = () => [1, ...Object.keys(inst).map(Number).sort()];
 
   const lvl = (p) => p == null ? "c-dim" : p >= 85 ? "c-red" : p >= 60 ? "c-yellow" : "c-green";
-  const pct = (p) => `<span class="${lvl(p)}">${p == null ? "  –" : String(p).padStart(3) + "%"}</span>`;
+  const pct = (p) => `<span class="${lvl(p)}">${p == null ? "   –" : String(p).padStart(3) + "%"}</span>`;
 
   function icon(st) {
     if (st === "work") return reduce ? "●" : SPIN[S.frame % SPIN.length];
@@ -222,14 +222,15 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
       left = ` <span class="c-hi b">${S.ws} ${esc(a.profile)}</span> <span class="c-dim">${esc(a.name || "")}  ${a.cwd}  ${a.branch}</span>   ` +
         `<span class="c-dim">ctx</span>${pct(a.ctx)}  <span class="c-dim">5h</span>${pct(l && l.h5)}  <span class="c-dim">wk</span>${pct(l && l.wk)}`;
     }
-    $("tabline").innerHTML = `${left}<span class="fill"></span>${pills()} `;
+    // One inline span: inside a flex row, whitespace between spans would be dropped
+    $("tabline").innerHTML = `<span>${left}</span><span class="fill"></span>${pills()} `;
   }
 
   function status() {
     const left = S.ws === 1
       ? `<span class="c-blue">▊</span> <span class="c-green">●</span> <span class="c-purple b">picker.lua</span> <span class="c-dim">1.2k  8:20</span>`
       : `<span class="c-blue">▊</span> <span class="c-purple">●</span> <span class="c-purple b">term://${esc(inst[S.ws].profile)}</span>`;
-    $("status").innerHTML = `${left}<span class="fill"></span>${pills()}<span class="fill"></span><span class="c-dim">lua_ls </span><span class="c-purple"> feat/workspaces </span><span class="c-blue">▊</span>`;
+    $("status").innerHTML = `<span>${left}</span><span class="fill"></span>${pills()}<span class="fill"></span><span class="c-dim">lua_ls </span><span class="c-purple"> feat/workspaces </span><span class="c-blue">▊</span>`;
   }
 
   const code = [
@@ -371,6 +372,12 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     else if (k === "i") open("rename");
     else if (k === "x") close();
   });
+
+  // Deep links for screenshots: #ws=3&float=pick
+  const params = new URLSearchParams(location.hash.slice(1));
+  if (params.get("ws")) S.ws = Number(params.get("ws"));
+  if (params.get("float")) { S.float = params.get("float"); S.sel = Number(params.get("sel") || 0); }
+  if (params.get("frame")) S.frame = Number(params.get("frame"));
 
   if (!reduce) setInterval(() => { S.frame++; tabline(); status(); if (S.ws !== 1 && inst[S.ws].state === "work") agentView(); if (S.float === "pick") floatView(); }, 100);
   render();
