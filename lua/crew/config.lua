@@ -14,7 +14,9 @@
 ---@field done string Agent finished and the user has not looked yet
 
 ---@class crew.Keys
----@field prefix string|false Prefix for global keymaps (normal and terminal mode), false to disable
+---@field toggle? string|false Editor <-> last agent, in normal and terminal mode. A single key, never a chord, so it does not depend on timeoutlen
+---@field new? string|false Open a new agent (normal mode), asks which one when there are several profiles
+---@field close? string|false Close the current agent (normal mode)
 ---@field jump? string|false Direct jump to slot N, a format string with %d (e.g. "<C-%d>"), false to disable. Needs a terminal with the kitty keyboard protocol
 ---@field stopinsert? string|false Key that leaves terminal mode inside agent buffers, e.g. "jk"
 
@@ -28,7 +30,9 @@ M.defaults = {
 	default_agent = "claude",
 	keys = {
 		-- Not <C-Space>: macOS binds it to "select previous input source".
-		prefix = "<C-,>",
+		toggle = "<C-,>",
+		new = "<leader>cn",
+		close = "<leader>ce",
 		jump = "<C-%d>",
 		stopinsert = false,
 	},

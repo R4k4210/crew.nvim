@@ -174,8 +174,7 @@ function M.jump(slot)
 	end
 	local ws = slot and M.workspaces[slot]
 	if not ws then
-		vim.notify(("crew: no workspace %s"):format(slot or "?"), vim.log.levels.WARN)
-		return
+		return -- empty slot: stay put, a notification here is just noise
 	end
 	focus(ws)
 end

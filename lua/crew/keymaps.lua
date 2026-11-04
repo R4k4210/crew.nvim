@@ -1,6 +1,6 @@
--- Keymaps. Global ones use a prefix and work in normal and terminal mode,
--- so they fire from inside a running agent. Buffer-local ones only exist
--- in agent terminals.
+-- Keymaps. Every global key is a single key or a <leader> mapping, never a
+-- custom chord: a chord like <C-,>n waits only timeoutlen for its second
+-- key, and when it expires the second key runs on its own (n = search next).
 local config = require("crew.config")
 
 local M = {}
@@ -19,51 +19,40 @@ local function pick_and_open()
 	end)
 end
 
----@return { [1]: string, [2]: function, desc: string }[]
-local function actions()
-	local ws = require("crew.workspace")
-	local list = {
-		{ "<Space>", ws.toggle, desc = "editor <-> last agent" },
-		{ "n", pick_and_open, desc = "new agent" },
-		{ "x", function() ws.close() end, desc = "close agent" },
-	}
-	for slot = 1, 9 do
-		list[#list + 1] = {
-			tostring(slot),
-			function() ws.jump(slot) end,
-			desc = slot == 1 and "go to editor" or ("go to workspace " .. slot),
-		}
+---@param modes string|string[]
+---@param lhs string|false|nil
+---@param rhs function
+---@param desc string
+local function set(modes, lhs, rhs, desc)
+	if lhs then
+		vim.keymap.set(modes, lhs, rhs, { desc = desc })
 	end
-	return list
 end
 
 function M.setup()
-	-- Direct jumps skip the prefix. Ctrl plus a digit has no legacy terminal
-	-- encoding, so these only fire where the kitty keyboard protocol is on.
-	local jump = config.options.keys.jump
-	if jump then
+	local keys = config.options.keys
+	local ws = function()
+		return require("crew.workspace")
+	end
+
+	-- Normal and terminal mode, so it also gets you out of a running agent.
+	set({ "n", "t" }, keys.toggle, function()
+		ws().toggle()
+	end, "crew: editor <-> last agent")
+
+	-- Normal mode only: in terminal mode <leader> (Space) must reach the agent.
+	set("n", keys.new, pick_and_open, "crew-new")
+	set("n", keys.close, function()
+		ws().close()
+	end, "crew-exit")
+
+	-- Ctrl plus a digit has no legacy terminal encoding, so these only fire
+	-- where the kitty keyboard protocol is on.
+	if keys.jump then
 		for slot = 1, 9 do
-			vim.keymap.set({ "n", "t" }, jump:format(slot), function()
-				require("crew.workspace").jump(slot)
-			end, { desc = "crew: jump to slot " .. slot })
-		end
-	end
-
-	local prefix = config.options.keys.prefix
-	if not prefix then
-		return -- user opted out with prefix = false
-	end
-
-	-- Most terminals send Ctrl-Space as NUL, which Neovim reads as <C-@>.
-	-- Map both spellings so the prefix works everywhere.
-	local prefixes = { prefix }
-	if prefix:lower() == "<c-space>" then
-		prefixes[#prefixes + 1] = "<C-@>"
-	end
-
-	for _, p in ipairs(prefixes) do
-		for _, action in ipairs(actions()) do
-			vim.keymap.set({ "n", "t" }, p .. action[1], action[2], { desc = "crew: " .. action.desc })
+			set({ "n", "t" }, keys.jump:format(slot), function()
+				ws().jump(slot)
+			end, slot == 1 and "crew: go to editor" or ("crew: go to workspace " .. slot))
 		end
 	end
 end
