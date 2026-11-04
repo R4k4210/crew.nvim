@@ -11,6 +11,7 @@ M.groups = {
 	CrewPillDone = "DiagnosticOk",
 	CrewHeader = "Title", -- slot and profile in the agent tab header
 	CrewHeaderName = "Normal",
+	CrewHeaderDim = "Comment", -- cwd, branch and meter labels in the header
 }
 
 function M.setup()

@@ -105,6 +105,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: L8 written. `status.header()` builds slot, profile, name, cwd, branch and the ctx, 5h and week meters for the agent tab. Adapters: `crew.bufferline.left` (custom_areas) plus `crew.bufferline.filter` (custom_filter hides editor buffers inside agent tabs), and `opts.header = "winbar"` for setups without bufferline (`%<` after the name so narrow windows cut the cwd, never the agent). cwd comes from the statusLine `workspace.current_dir`; the branch is read with `git` in the background on open and on every cwd change. Bug found by driving the real bufferline: custom area text goes through the statusline evaluator, so `%` must be doubled (E539). Route: inline, teaching session. Headless 19 of 19 plus all suites; real tabline rendered in editor and agent tabs. Pending: user check.
 
+- 2026-11-04: Bug found by the user: header pieces showed on mixed backgrounds (name on black, the rest on gray). Cause: links to groups with a bg (Normal) and without one (Title, Comment, Diagnostic*, which fall back to TabLineFill). Fix: the bufferline adapter builds `CrewBufferline<Group>` copies with the source fg on `BufferLineFill` bg (else `TabLineFill`), refreshed when colors change (bufferline own generated groups are `default = true` and would freeze a percentage color). Dim header text now uses `CrewHeaderDim` (links Comment) so users can brighten it. Headless 21 of 21; user theme check shows every item on `#07090c`.
+
 ## Next step
 
 User checks the L8 header, then D1 docs refresh and push, then L9 quality.

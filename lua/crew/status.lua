@@ -106,20 +106,20 @@ function M.header(ws)
 		chunks[#chunks + 1] = { " " .. ws.name, "CrewHeaderName" }
 	end
 	if ws.cwd then
-		chunks[#chunks + 1] = { "  " .. vim.fn.fnamemodify(ws.cwd, ":~"), "Comment" }
+		chunks[#chunks + 1] = { "  " .. vim.fn.fnamemodify(ws.cwd, ":~"), "CrewHeaderDim" }
 	end
 	if ws.branch then
-		chunks[#chunks + 1] = { "  " .. ws.branch, "Comment" }
+		chunks[#chunks + 1] = { "  " .. ws.branch, "CrewHeaderDim" }
 	end
 	for _, meter in ipairs({
 		{ "   ctx ", usage.ctx },
 		{ "  5h ", usage.five_hour and usage.five_hour.pct },
 		{ "  wk ", usage.seven_day and usage.seven_day.pct },
 	}) do
-		chunks[#chunks + 1] = { meter[1], "Comment" }
+		chunks[#chunks + 1] = { meter[1], "CrewHeaderDim" }
 		chunks[#chunks + 1] = percent(meter[2])
 	end
-	chunks[#chunks + 1] = { " ", "Comment" }
+	chunks[#chunks + 1] = { " ", "CrewHeaderDim" }
 	return chunks
 end
 
