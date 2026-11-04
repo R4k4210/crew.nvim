@@ -279,11 +279,11 @@ h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; color: var(
     if (S.float === "pick") {
       title = "crew instances";
       rows = Object.keys(inst).map(Number).sort().map((n) => ({ n, html: instanceRow(n) }));
-      help = "enter jump · ␣ai rename · esc close";
+      help = "enter jump · esc cancel";
     } else if (S.float === "new") {
       title = "crew new";
       rows = profiles.map((p) => ({ n: p, html: `<span class="c-hi">${pad(p, 14)}</span><span class="c-dim">${limits[p] ? "5h " + limits[p].h5 + "%  wk " + limits[p].wk + "%" : "no usage data"}</span>` }));
-      help = "enter open · esc close";
+      help = "enter open · esc cancel";
     } else {
       title = `name instance ${S.ws}`;
       help = "enter save · empty clears · esc cancel";

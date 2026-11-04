@@ -91,19 +91,38 @@ end
 ---@field chunks crew.Chunk[]
 ---@field value any
 
+--- Footer like " enter jump · <leader>ai rename · esc close ", skipping
+--- actions whose key the user turned off.
+---@param actions { [1]: string|false|nil, [2]: string }[] key and label
+---@return string
+function M.hint(actions)
+	local parts = {}
+	for _, a in ipairs(actions) do
+		if a[1] then
+			parts[#parts + 1] = a[1] .. " " .. a[2]
+		end
+	end
+	return " " .. table.concat(parts, " · ") .. " "
+end
+
+---@class crew.SelectOpts
+---@field selected? integer Row the cursor starts on (snacks only)
+---@field footer? string Key hints under the list (snacks only)
+
 --- Show a list and call on_choice with the chosen value (never with nil).
 ---@param title string
 ---@param items crew.PickItem[]
 ---@param on_choice fun(value: any)
----@param selected? integer Row the cursor starts on (snacks only)
-local function select(title, items, on_choice, selected)
+---@param opts? crew.SelectOpts
+local function select(title, items, on_choice, opts)
+	opts = opts or {}
 	local ok, snacks = pcall(require, "snacks")
 	if ok and snacks.picker then
 		snacks.picker.pick({
 			title = title,
 			items = items,
-			on_show = selected and function(picker)
-				picker.list:set_target(selected)
+			on_show = opts.selected and function(picker)
+				picker.list:set_target(opts.selected)
 			end or nil,
 			format = function(item)
 				return item.chunks
@@ -122,6 +141,10 @@ local function select(title, items, on_choice, selected)
 					-- input line + its bottom border + the rows + the outer border
 					layout.layout.height = rows + 4
 					layout.layout.min_height = nil
+					if opts.footer then
+						layout.layout.footer = { { opts.footer, "Comment" } }
+						layout.layout.footer_pos = "center"
+					end
 				end,
 			},
 			confirm = function(picker, item)
@@ -158,7 +181,7 @@ function M.new()
 	local items = vim.tbl_map(function(name)
 		return { text = name, chunks = { { name, "Function" } }, value = name }
 	end, names)
-	select("Crew new", items, open)
+	select("Crew new", items, open, { footer = M.hint({ { "enter", "open" }, { "esc", "close" } }) })
 end
 
 --- Choose an open instance and call on_choice with its slot. The cursor
@@ -166,7 +189,8 @@ end
 --- Does nothing when no agent is open.
 ---@param title string
 ---@param on_choice fun(slot: integer)
-function M.instances(title, on_choice)
+---@param footer? string
+function M.instances(title, on_choice, footer)
 	local entries = vim.tbl_filter(function(e)
 		return e.slot > 1
 	end, require("crew.status").list())
@@ -188,12 +212,13 @@ function M.instances(title, on_choice)
 		local chunks = M.instance_row(e, widths)
 		return { text = plain(chunks), chunks = chunks, value = e.slot }
 	end, entries)
-	select(title, items, on_choice, selected)
+	select(title, items, on_choice, { selected = selected, footer = footer })
 end
 
 --- Jump to an open instance.
 function M.pick()
-	M.instances("Crew instances", require("crew.workspace").jump)
+	-- Only keys that work inside the picker: its input takes everything else.
+	M.instances("Crew instances", require("crew.workspace").jump, M.hint({ { "enter", "jump" }, { "esc", "cancel" } }))
 end
 
 --- Name the current instance. Empty clears it, cancel keeps it.

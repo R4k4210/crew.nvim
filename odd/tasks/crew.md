@@ -47,7 +47,7 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: a permission prompt in workspace 3 turns its pill orange and pulses it while the user is in the editor.
 - [ ] **L6 Picker.** A snacks picker listing workspaces with a live preview of the terminal tail, plus a `vim.ui.select` fallback. Concept: optional dependencies.
   - Accept: `<C-,>p` lists every workspace, `enter` jumps and `x` closes.
-- [ ] **L7 Usage meters.** A statusLine script forwards `context_window.used_percentage` and `rate_limits.five_hour` / `seven_day` to Neovim. Agent tabs show ctx, 5h and week bars with reset times. Concept: designing for missing data, since `rate_limits` arrives after the first response.
+- [x] **L7 Usage meters.** A statusLine script forwards `context_window.used_percentage` and `rate_limits.five_hour` / `seven_day` to Neovim. Agent tabs show ctx, 5h and week bars with reset times. Concept: designing for missing data, since `rate_limits` arrives after the first response.
   - Accept: bars update per session for ctx and per profile for limits, and render empty without errors before data exists.
 - [ ] **L8 Header in agent tabs.** Bufferline (or a winbar fallback) shows agent name, cwd, branch and the meters inside agent tabs.
   - Accept: matches the mockup header and returns to the buffer list in workspace 1.
@@ -99,6 +99,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: L7 written. crew injects a `statusLine` (scripts/statusline.lua) through the same `--settings` merge; it forwards `context_window.used_percentage` and `rate_limits.five_hour` / `seven_day` (`used_percentage`, `resets_at` as epoch or ISO) to `crew.state.usage` over `$NVIM`, then runs the user original statusLine from `$CREW_STATUSLINE` (found in the inline `--settings`, else `$CLAUDE_CONFIG_DIR/settings.json`, else `~/.claude/settings.json`) with the same stdin. Context is per instance, limits per profile (`state.limits`). Route: inline, teaching session. Headless 13 of 13 plus all suites; end to end with the user real statusline script, output identical byte for byte, 20 ms per run. Pending: check with real Claude that the `--settings` statusLine wins over settings.json.
 
+- 2026-11-04: The user verified L7 with real Claude (columns fill, status bar unchanged). Pickers gained a snacks window footer with the keys that work inside them (enter, esc), via `picker.hint`; the mockup and its screenshots match it.
+
 ## Next step
 
-User checks L7 with real Claude (picker columns fill, own status bar unchanged), then L8 header in agent tabs.
+L8 header in agent tabs (profile, name, cwd, branch and meters), then L9 quality.

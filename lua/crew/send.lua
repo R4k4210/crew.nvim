@@ -37,12 +37,13 @@ local function paste(text, how)
 	if how == "last" or #agents == 1 then
 		return deliver(ws.current() or (ws.last and ws.workspaces[ws.last]) or agents[1], text)
 	end
-	require("crew.picker").instances("Crew send to", function(slot)
+	local picker = require("crew.picker")
+	picker.instances("Crew send to", function(slot)
 		local agent = ws.workspaces[slot]
 		if agent then
 			deliver(agent, text)
 		end
-	end)
+	end, picker.hint({ { "enter", "send" }, { "esc", "cancel" } }))
 end
 
 --- Path of the current buffer relative to the cwd, nil for unnamed buffers.
