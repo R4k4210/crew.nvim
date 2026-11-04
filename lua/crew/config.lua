@@ -21,6 +21,8 @@
 ---@field rename? string|false Name the current instance (normal mode)
 ---@field send_file? string|false Send @path of the current file to the agent (normal mode)
 ---@field send_selection? string|false Send the selected lines with their location to the agent (visual mode)
+---@field send_file_last? string|false Like send_file, straight to the last agent with no picker
+---@field send_selection_last? string|false Like send_selection, straight to the last agent with no picker
 ---@field jump? string|false Direct jump to slot N, a format string with %d (e.g. "<C-%d>"), false to disable. Needs a terminal with the kitty keyboard protocol
 ---@field stopinsert? string|false Key that leaves terminal mode inside agent buffers, e.g. "jk"
 
@@ -41,6 +43,8 @@ M.defaults = {
 		rename = "<leader>ai",
 		send_file = "<leader>af",
 		send_selection = "<leader>av",
+		send_file_last = "<leader>aF",
+		send_selection_last = "<leader>aV",
 		jump = "<C-%d>",
 		stopinsert = false,
 	},

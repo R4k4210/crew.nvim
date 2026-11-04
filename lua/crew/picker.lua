@@ -95,12 +95,16 @@ end
 ---@param title string
 ---@param items crew.PickItem[]
 ---@param on_choice fun(value: any)
-local function select(title, items, on_choice)
+---@param selected? integer Row the cursor starts on (snacks only)
+local function select(title, items, on_choice, selected)
 	local ok, snacks = pcall(require, "snacks")
 	if ok and snacks.picker then
 		snacks.picker.pick({
 			title = title,
 			items = items,
+			on_show = selected and function(picker)
+				picker.list:set_target(selected)
+			end or nil,
 			format = function(item)
 				return item.chunks
 			end,
@@ -157,13 +161,23 @@ function M.new()
 	select("Crew new", items, open)
 end
 
---- Jump to an open instance. Does nothing when no agent is open.
-function M.pick()
+--- Choose an open instance and call on_choice with its slot. The cursor
+--- starts on the last visited instance, so Enter means "the usual one".
+--- Does nothing when no agent is open.
+---@param title string
+---@param on_choice fun(slot: integer)
+function M.instances(title, on_choice)
 	local entries = vim.tbl_filter(function(e)
 		return e.slot > 1
 	end, require("crew.status").list())
 	if #entries == 0 then
 		return
+	end
+	local last, selected = require("crew.workspace").last, nil
+	for i, e in ipairs(entries) do
+		if e.slot == last then
+			selected = i
+		end
 	end
 	local widths = { agent = 1, name = 1 }
 	for _, e in ipairs(entries) do
@@ -174,7 +188,12 @@ function M.pick()
 		local chunks = M.instance_row(e, widths)
 		return { text = plain(chunks), chunks = chunks, value = e.slot }
 	end, entries)
-	select("Crew instances", items, require("crew.workspace").jump)
+	select(title, items, on_choice, selected)
+end
+
+--- Jump to an open instance.
+function M.pick()
+	M.instances("Crew instances", require("crew.workspace").jump)
 end
 
 --- Name the current instance. Empty clears it, cancel keeps it.

@@ -87,6 +87,10 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: P1 to P3 done. Crew opens its own snacks picker (`preview = false`, list height fitted to the rows) with a `vim.ui.select` fallback; `<leader>an` profiles, `<leader>ap` instances with aligned slot, profile, name, ctx, 5h and week columns (`–` until L7), `<leader>ai` names the current instance (`:Crew rename [name]`, empty clears). `crew.Usage` shape follows Claude `rate_limits` (`pct`, `resets_at`). Headless 21 of 21, keys 10 of 10, L4 17 of 17; snacks path driven over RPC in the user config (no preview window, box 4 rows for 2 items, rename and jump work). Still open: `opts.agents` merges with the default `claude` profile.
 
+- 2026-11-04: `de5e28d` fix: a user `agents` table replaces the default `claude` instead of merging; `default_agent` falls back to the first name sorted. `ec52d20` feat: `<leader>af` sends `@path`, `<leader>av` (visual) sends `@path:lines` plus a fenced block, both as bracketed paste to the current, last or first agent, then focus it. Replaces the Sidekick send keys. Headless 16 of 16 plus the earlier suites; the visual key driven over RPC into a `cat` agent.
+
+- 2026-11-04: Send targets: `<leader>af` / `<leader>av` ask which instance (skipped with one open, cursor starts on the last visited one via snacks `on_show` plus `list:set_target`), `<leader>aF` / `<leader>aV` go straight to the last agent. `picker.instances(title, on_choice)` is the reusable instance chooser. Headless 9 of 9 plus all earlier suites; preselection verified with real snacks and three `cat` agents over RPC.
+
 ## Next step
 
 User checks pills and pickers after a restart, then L5 agent state (hooks report work, ask, done).

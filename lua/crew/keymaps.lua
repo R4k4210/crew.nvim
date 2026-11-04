@@ -42,14 +42,18 @@ function M.setup()
 	set("n", keys.rename, function()
 		picker().rename()
 	end, "crew-rename")
-	set("n", keys.send_file, function()
-		require("crew.send").file()
-	end, "crew-send-file")
-	set("x", keys.send_selection, function()
-		local first, last = vim.fn.line("v"), vim.fn.line(".")
-		vim.cmd("normal! \27") -- leave visual mode before switching tabs
-		require("crew.send").selection(first, last)
-	end, "crew-send-selection")
+	-- Lowercase asks which instance, uppercase sends to the last one.
+	for how, suffix in pairs({ pick = "", last = "_last" }) do
+		local label = how == "last" and "-last" or ""
+		set("n", keys["send_file" .. suffix], function()
+			require("crew.send").file(how)
+		end, "crew-send-file" .. label)
+		set("x", keys["send_selection" .. suffix], function()
+			local first, last = vim.fn.line("v"), vim.fn.line(".")
+			vim.cmd("normal! \27") -- leave visual mode before switching tabs
+			require("crew.send").selection(first, last, how)
+		end, "crew-send-selection" .. label)
+	end
 
 	-- Ctrl plus a digit has no legacy terminal encoding, so these only fire
 	-- where the kitty keyboard protocol is on.

@@ -5,30 +5,44 @@ local M = {}
 
 local PASTE_START, PASTE_END = "\27[200~", "\27[201~"
 
---- Agent in the current tab, else the last visited one, else the first open.
----@return crew.Workspace?
-local function target()
-	local ws = require("crew.workspace")
-	local found = ws.current() or (ws.last and ws.workspaces[ws.last])
-	if found then
-		return found
-	end
-	for slot = 2, 9 do
-		if ws.workspaces[slot] then
-			return ws.workspaces[slot]
-		end
-	end
+---@alias crew.SendTarget "pick"|"last"
+
+---@param agent crew.Workspace
+---@param text string
+local function deliver(agent, text)
+	vim.api.nvim_chan_send(agent.job, PASTE_START .. text .. PASTE_END)
+	require("crew.workspace").jump(agent.slot) -- land in the agent to type the question
 end
 
+---@return crew.Workspace[]
+local function open_agents()
+	local ws, list = require("crew.workspace"), {}
+	for slot = 2, 9 do
+		list[#list + 1] = ws.workspaces[slot]
+	end
+	return list
+end
+
+--- "last": the current agent, else the last visited, else the first open.
+--- "pick": ask which instance, unless only one is open.
 ---@param text string
-local function paste(text)
-	local agent = target()
-	if not agent then
+---@param how? crew.SendTarget defaults to "pick"
+local function paste(text, how)
+	local ws = require("crew.workspace")
+	local agents = open_agents()
+	if #agents == 0 then
 		vim.notify("crew: no agent open to send to", vim.log.levels.WARN)
 		return
 	end
-	vim.api.nvim_chan_send(agent.job, PASTE_START .. text .. PASTE_END)
-	require("crew.workspace").jump(agent.slot) -- land in the agent to type the question
+	if how == "last" or #agents == 1 then
+		return deliver(ws.current() or (ws.last and ws.workspaces[ws.last]) or agents[1], text)
+	end
+	require("crew.picker").instances("Crew send to", function(slot)
+		local agent = ws.workspaces[slot]
+		if agent then
+			deliver(agent, text)
+		end
+	end)
 end
 
 --- Path of the current buffer relative to the cwd, nil for unnamed buffers.
@@ -42,17 +56,19 @@ local function path()
 end
 
 --- Mention the current file, e.g. "@lua/crew/send.lua ".
-function M.file()
+---@param how? crew.SendTarget
+function M.file(how)
 	local p = path()
 	if p then
-		paste("@" .. p .. " ")
+		paste("@" .. p .. " ", how)
 	end
 end
 
 --- Send lines first..last of the current buffer with their location.
 ---@param first integer
 ---@param last integer
-function M.selection(first, last)
+---@param how? crew.SendTarget
+function M.selection(first, last, how)
 	if first > last then
 		first, last = last, first
 	end
@@ -61,7 +77,7 @@ function M.selection(first, last)
 	local range = first == last and tostring(first) or ("%d-%d"):format(first, last)
 	local p = path()
 	local head = p and ("@%s:%s\n"):format(p, range) or ""
-	paste(("%s```%s\n%s\n```\n"):format(head, ft, table.concat(lines, "\n")))
+	paste(("%s```%s\n%s\n```\n"):format(head, ft, table.concat(lines, "\n")), how)
 end
 
 return M
