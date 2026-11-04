@@ -95,6 +95,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: The user verified L5 with real Claude: work, ask (blink plus toast) and done all show; symbols clear once seen, as designed.
 
+- 2026-11-04: README (English) with mockup screenshots added; mockup overlap fixed. A work project name in the first mockup commit was rewritten out of history with `filter-branch`, all 17 commits re-signed (`G`), backup and `refs/original` pruned. Public repo https://github.com/R4k4210/crew.nvim created by the user, `main` and `feat/workspaces` pushed, GitHub reports 17 of 17 commits verified.
+
 ## Next step
 
 L7 usage meters (statusLine script forwards context and rate limits), then the picker columns fill in.
