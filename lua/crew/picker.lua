@@ -235,4 +235,6 @@ function M.rename()
 	end)
 end
 
+M.percent = percent -- shared with the agent header (crew.status)
+
 return M

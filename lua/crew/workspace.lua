@@ -12,6 +12,8 @@ local config = require("crew.config")
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
 ---@field name? string Label set by the user, shown in the picker and never in the pills
 ---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
+---@field cwd? string Where the agent works, updated from its statusLine
+---@field branch? string|false Git branch of cwd, false when there is none, nil while unknown
 
 ---@class crew.Limit
 ---@field pct number Percent used
@@ -180,6 +182,11 @@ function M.open(name)
 	})
 	vim.bo[ws.buf].buflisted = false -- keep it out of bufferline
 	require("crew.keymaps").attach(ws.buf)
+	ws.cwd = vim.fn.getcwd()
+	M.refresh_branch(ws)
+	if config.options.header == "winbar" then
+		vim.wo[vim.api.nvim_get_current_win()].winbar = "%{%v:lua.require'crew.status'.winbar()%}"
+	end
 	M.workspaces[slot] = ws
 	focus(ws)
 	changed()
@@ -239,6 +246,24 @@ function M.rename(name, slot)
 	name = name and vim.trim(name) or ""
 	ws.name = name ~= "" and name or nil
 	changed()
+end
+
+--- Read the git branch of ws.cwd in the background. Sets ws.branch to the
+--- name, or false outside a repo or on a detached HEAD.
+---@param ws crew.Workspace
+function M.refresh_branch(ws)
+	local cwd = ws.cwd
+	if not cwd then
+		return
+	end
+	vim.system({ "git", "-C", cwd, "branch", "--show-current" }, { text = true }, vim.schedule_wrap(function(result)
+		if ws.cwd ~= cwd then
+			return -- the agent moved on while git was running
+		end
+		local name = result.code == 0 and vim.trim(result.stdout or "") or ""
+		ws.branch = name ~= "" and name or false
+		changed()
+	end))
 end
 
 --- Drop workspaces whose tab was closed by hand (:tabclose).

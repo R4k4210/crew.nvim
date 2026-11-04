@@ -8,6 +8,7 @@
 ---@field default_agent string Agent opened when no name is given
 ---@field keys crew.Keys
 ---@field icons crew.Icons
+---@field header? "winbar"|false Agent header in the winbar of agent windows. Leave false when bufferline draws it (crew.bufferline.left)
 
 ---@class crew.Icons
 ---@field work string Agent is running a task
@@ -49,6 +50,7 @@ M.defaults = {
 		jump = "<C-%d>",
 		stopinsert = false,
 	},
+	header = false,
 	icons = {
 		work = "●",
 		ask = "?",

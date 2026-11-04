@@ -90,4 +90,60 @@ function M.pills()
 	return pills
 end
 
+--- Header for an agent tab: slot, profile and name, then cwd and branch,
+--- then the usage meters. Nil when the tab is not an agent (the editor).
+---@param ws? crew.Workspace defaults to the agent in the current tab
+---@return crew.Chunk[]?
+function M.header(ws)
+	ws = ws or workspace.current()
+	if not ws then
+		return nil
+	end
+	local percent = require("crew.picker").percent
+	local usage = usage_of(ws) or {}
+	local chunks = { { (" %d %s"):format(ws.slot, ws.agent), "CrewHeader" } }
+	if ws.name then
+		chunks[#chunks + 1] = { " " .. ws.name, "CrewHeaderName" }
+	end
+	if ws.cwd then
+		chunks[#chunks + 1] = { "  " .. vim.fn.fnamemodify(ws.cwd, ":~"), "Comment" }
+	end
+	if ws.branch then
+		chunks[#chunks + 1] = { "  " .. ws.branch, "Comment" }
+	end
+	for _, meter in ipairs({
+		{ "   ctx ", usage.ctx },
+		{ "  5h ", usage.five_hour and usage.five_hour.pct },
+		{ "  wk ", usage.seven_day and usage.seven_day.pct },
+	}) do
+		chunks[#chunks + 1] = { meter[1], "Comment" }
+		chunks[#chunks + 1] = percent(meter[2])
+	end
+	chunks[#chunks + 1] = { " ", "Comment" }
+	return chunks
+end
+
+--- Winbar expression target: the header of the agent that owns the window
+--- being drawn, as a statusline string.
+---@return string
+function M.winbar()
+	local win = vim.g.statusline_winid or vim.api.nvim_get_current_win()
+	local tab = vim.api.nvim_win_get_tabpage(win)
+	for _, ws in pairs(workspace.workspaces) do
+		if ws.tab == tab then
+			local parts = {}
+			for i, c in ipairs(M.header(ws) or {}) do
+				parts[#parts + 1] = ("%%#%s#%s"):format(c[2] or "Normal", (c[1]:gsub("%%", "%%%%")))
+				if i == (ws.name and 2 or 1) then
+					-- Truncate after slot, profile and name: on a narrow window the
+					-- cwd gets cut, never the part that says which agent this is.
+					parts[#parts + 1] = "%<"
+				end
+			end
+			return table.concat(parts)
+		end
+	end
+	return ""
+end
+
 return M

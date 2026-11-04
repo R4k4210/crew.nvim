@@ -20,6 +20,7 @@ local function forward()
 	end
 	local usage = {
 		ctx = data.context_window and data.context_window.used_percentage,
+		cwd = data.workspace and data.workspace.current_dir or data.cwd,
 		five_hour = limit("five_hour"),
 		seven_day = limit("seven_day"),
 	}

@@ -9,6 +9,8 @@ M.groups = {
 	CrewPillAsk = "DiagnosticWarn",
 	CrewPillAskBlink = "IncSearch", -- second phase of the ask blink
 	CrewPillDone = "DiagnosticOk",
+	CrewHeader = "Title", -- slot and profile in the agent tab header
+	CrewHeaderName = "Normal",
 }
 
 function M.setup()

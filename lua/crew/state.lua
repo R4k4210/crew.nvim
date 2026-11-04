@@ -135,11 +135,15 @@ end
 
 --- Entry point for scripts/statusline.lua.
 ---@param id integer
----@param data { ctx?: number, five_hour?: table, seven_day?: table }
+---@param data { ctx?: number, cwd?: string, five_hour?: table, seven_day?: table }
 function M.usage(id, data)
 	local ws = find(id)
 	if not ws then
 		return
+	end
+	if data.cwd and data.cwd ~= ws.cwd then
+		ws.cwd = data.cwd
+		require("crew.workspace").refresh_branch(ws)
 	end
 	ws.usage = ws.usage or {}
 	ws.usage.ctx = data.ctx or ws.usage.ctx
@@ -147,6 +151,7 @@ function M.usage(id, data)
 	limits.five_hour = normalize(data.five_hour) or limits.five_hour
 	limits.seven_day = normalize(data.seven_day) or limits.seven_day
 	M.limits[ws.agent] = limits
+	vim.cmd.redrawtabline() -- the agent header shows these meters
 end
 
 --- The user entered a workspace tab: done means "not seen yet", so clear it.

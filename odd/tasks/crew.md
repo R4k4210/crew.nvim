@@ -51,6 +51,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
   - Accept: bars update per session for ctx and per profile for limits, and render empty without errors before data exists.
 - [ ] **L8 Header in agent tabs.** Bufferline (or a winbar fallback) shows agent name, cwd, branch and the meters inside agent tabs.
   - Accept: matches the mockup header and returns to the buffer list in workspace 1.
+- [ ] **D1 Refresh docs after L8.** Retake README screenshots from the mockup (deep links `#ws=2`, `#float=pick`) and update the README sections that L8 changes, then push.
+
 - [ ] **L9 Quality and publish.** Tests with `mini.test`, `:checkhealth crew`, `doc/crew.txt`, README, GitHub repo `R4k4210/crew.nvim` with topics.
   - Accept: tests pass in CI and the plugin installs from `"R4k4210/crew.nvim"`.
 - [ ] **L10 Replace Sidekick.** Swap Sidekick for crew.nvim in the user config.
@@ -101,6 +103,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 - 2026-11-04: The user verified L7 with real Claude (columns fill, status bar unchanged). Pickers gained a snacks window footer with the keys that work inside them (enter, esc), via `picker.hint`; the mockup and its screenshots match it.
 
+- 2026-11-04: L8 written. `status.header()` builds slot, profile, name, cwd, branch and the ctx, 5h and week meters for the agent tab. Adapters: `crew.bufferline.left` (custom_areas) plus `crew.bufferline.filter` (custom_filter hides editor buffers inside agent tabs), and `opts.header = "winbar"` for setups without bufferline (`%<` after the name so narrow windows cut the cwd, never the agent). cwd comes from the statusLine `workspace.current_dir`; the branch is read with `git` in the background on open and on every cwd change. Bug found by driving the real bufferline: custom area text goes through the statusline evaluator, so `%` must be doubled (E539). Route: inline, teaching session. Headless 19 of 19 plus all suites; real tabline rendered in editor and agent tabs. Pending: user check.
+
 ## Next step
 
-L8 header in agent tabs (profile, name, cwd, branch and meters), then L9 quality.
+User checks the L8 header, then D1 docs refresh and push, then L9 quality.
