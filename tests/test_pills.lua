@@ -89,6 +89,96 @@ T["editor pill"]["uses CrewPillEditorCurrent in the editor"] = function()
 	eq(child.lua_get("status.pills()[2].hl"), "CrewPill")
 end
 
+T["window"] = MiniTest.new_set()
+
+-- 15 agents, current is agent n. texts() and hls() read the pills.
+local function fifteen(n, opts)
+	setup(opts)
+	child.lua([[
+		for _ = 1, 15 do ws.open() end
+		ws.jump(...)
+		state = require("crew.state")
+		texts = function() return vim.tbl_map(function(p) return p.text end, status.pills()) end
+		last_hl = function() local p = status.pills(); return p[#p].hl end
+	]], { n })
+end
+
+T["window"]["shows max agents around the current one"] = function()
+	fifteen(10)
+	eq(child.lua_get("texts()"), { " E ", " ‹7 ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " 3› " })
+end
+
+T["window"]["pills have a kind"] = function()
+	fifteen(10)
+	eq(child.lua_get("vim.tbl_map(function(p) return p.kind end, status.pills())"), {
+		"editor", "more", "agent", "agent", "agent", "agent", "agent", "more",
+	})
+end
+
+T["window"]["no left marker at the start"] = function()
+	fifteen(1)
+	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 10› " })
+end
+
+T["window"]["no right marker at the end"] = function()
+	fifteen(15)
+	eq(child.lua_get("texts()"), { " E ", " ‹10 ", " 11 ", " 12 ", " 13 ", " 14 ", " 15 " })
+end
+
+T["window"]["no markers when every agent fits"] = function()
+	setup()
+	child.lua("for _ = 1, 5 do ws.open() end")
+	eq(child.lua_get("#status.pills()"), 6)
+end
+
+T["window"]["respects pills.max"] = function()
+	fifteen(10, { pills = { max = 3 } })
+	eq(child.lua_get("texts()"), { " E ", " ‹8 ", " 9 ", " 10 ", " 11 ", " 4› " })
+end
+
+T["window"]["in the editor it centers on the last visited agent"] = function()
+	fifteen(10)
+	child.lua("ws.editor()")
+	eq(child.lua_get("texts()"), { " E ", " ‹7 ", " 8 ", " 9 ", " 10 ", " 11 ", " 12 ", " 3› " })
+end
+
+T["window"]["in the editor with no last agent it starts from agent 1"] = function()
+	fifteen(10)
+	child.lua("ws.editor(); ws.last = nil")
+	eq(child.lua_get("texts()"), { " E ", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 10› " })
+end
+
+T["window"]["a marker with nothing to report uses CrewPillMore"] = function()
+	fifteen(10)
+	eq(child.lua_get("last_hl()"), "CrewPillMore")
+	eq(child.lua_get('vim.api.nvim_get_hl(0, { name = "CrewPillMore" }).link'), "Comment")
+end
+
+T["window"]["a hidden ask colors its marker and blinks"] = function()
+	fifteen(10)
+	child.lua('ws.workspaces[14].state = "done"; ws.workspaces[15].state = "ask"')
+	eq(child.lua_get("(function() state.blink = false; return last_hl() end)()"), "CrewPillAsk")
+	eq(child.lua_get("(function() state.blink = true; return last_hl() end)()"), "CrewPillAskBlink")
+end
+
+T["window"]["a hidden ask keeps the blink timer running"] = function()
+	fifteen(10)
+	child.lua([[
+		state.report(ws.workspaces[15].id, "Notification", { notification_type = "permission_prompt" })
+		state.blink = false
+		flipped = vim.wait(2000, function() return state.blink end)
+	]])
+	eq(child.lua_get("flipped"), true)
+end
+
+T["window"]["done wins over work in a marker"] = function()
+	fifteen(10)
+	child.lua('ws.workspaces[2].state = "work"; ws.workspaces[3].state = "done"')
+	eq(child.lua_get("status.pills()[2].hl"), "CrewPillDone")
+	child.lua("ws.workspaces[3].state = nil")
+	eq(child.lua_get("status.pills()[2].hl"), "CrewPillWork")
+end
+
 T["list exposes state and agent"] = function()
 	open_two()
 	child.lua('ws.workspaces[1].state = "done"')

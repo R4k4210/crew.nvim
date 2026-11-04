@@ -9,10 +9,14 @@
 ---@field keys crew.Keys
 ---@field icons crew.Icons
 ---@field editor crew.EditorPill
+---@field pills crew.Pills
 ---@field header? "winbar"|false Agent header in the winbar of agent windows. Leave false when bufferline draws it (crew.bufferline.left)
 
 ---@class crew.EditorPill
 ---@field label string Text of the editor pill, padded like the agent pills
+
+---@class crew.Pills
+---@field max integer Agent pills shown at once, the rest fold into markers. The editor pill does not count
 
 ---@class crew.Icons
 ---@field work string Agent is running a task
@@ -58,6 +62,7 @@ M.defaults = {
 	},
 	header = false,
 	editor = { label = "E" },
+	pills = { max = 5 },
 	icons = {
 		work = "●",
 		ask = "?",

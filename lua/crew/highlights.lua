@@ -11,6 +11,7 @@ M.groups = {
 	CrewPillAsk = "DiagnosticWarn",
 	CrewPillAskBlink = "IncSearch", -- second phase of the ask blink
 	CrewPillDone = "DiagnosticOk",
+	CrewPillMore = "Comment", -- marker for agents hidden outside the pill window
 	CrewHeader = "Title", -- slot and profile in the agent tab header
 	CrewHeaderName = "Normal",
 	CrewHeaderDim = "Comment", -- cwd, branch and meter labels in the header
