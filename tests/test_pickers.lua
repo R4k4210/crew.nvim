@@ -137,6 +137,10 @@ T["pick"]["row ends with the ask icon"] = function()
 	match(pick_rows()[1], "%?$")
 end
 
+T["pick"]["the state icon is apart from the reset date"] = function()
+	match(pick_rows()[1], "18:00 %?$")
+end
+
 T["pick"]["row has its name and dashes for missing usage"] = function()
 	local row = pick_rows()[2]
 	match(row, "ops analysis", true)
