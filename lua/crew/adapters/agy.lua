@@ -10,6 +10,10 @@ local M = { name = "agy" }
 -- Its quota only has a weekly bucket, so there is no five hour meter.
 M.usage = { "ctx", "seven_day" }
 
+-- agy reports no "waiting on you" state, but its selector (questions and
+-- permissions) always draws this footer, so crew watches for it.
+M.waiting_text = "enter Select · esc Skip"
+
 --- agy's data dir. Tests point it to a temp dir.
 M.data_dir = vim.fn.expand("~/.gemini/antigravity-cli")
 

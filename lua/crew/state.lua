@@ -63,8 +63,18 @@ local function next_state(event, payload, ws)
 		-- a pending tool confirmation asks, and answering it goes back to work.
 		if payload.pending then
 			return "ask"
-		elseif ws.state == "ask" and payload.busy then
+		elseif ws.state == "ask" and payload.busy and not ws.waiting then
 			return "work"
+		end
+	elseif event == "Screen" then
+		-- agy has no "waiting on you" event, so crew watches its terminal for
+		-- the selector it draws (see crew.screen). Only a change counts.
+		if payload.waiting and not ws.waiting then
+			ws.waiting = true
+			return "ask"
+		elseif not payload.waiting and ws.waiting then
+			ws.waiting = false
+			return ws.state == "ask" and "work" or nil
 		end
 	elseif event == "Stop" then
 		return "done"

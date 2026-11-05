@@ -11,6 +11,7 @@ local config = require("crew.config")
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
+---@field waiting? boolean The terminal shows the CLI waiting on the user (crew.screen)
 ---@field session_id? string Session id of the agent CLI, reported by the hooks, nil until the first event
 ---@field name? string Label set by the user, shown in the picker and never in the pills
 ---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
@@ -193,6 +194,9 @@ function M.open(name, args)
 	})
 	vim.bo[ws.buf].buflisted = false -- keep it out of bufferline
 	require("crew.keymaps").attach(ws.buf)
+	if adapter.waiting_text then
+		require("crew.screen").watch(ws, adapter.waiting_text)
+	end
 	ws.cwd = vim.fn.getcwd()
 	M.refresh_branch(ws)
 	if config.options.header == "winbar" then

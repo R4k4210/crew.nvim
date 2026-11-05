@@ -174,6 +174,43 @@ end
 local QUOTA = '"quota":{"gemini-weekly":{"remaining_fraction":0.9378,"reset_time":"2026-07-06T07:50:32Z"},'
 	.. '"3p-weekly":{"remaining_fraction":0.5,"reset_time":"2026-07-07T00:00:00Z"}}'
 
+T["screen"] = MiniTest.new_set()
+
+-- An agy agent whose terminal draws agy's selector footer, then, after
+-- `clear_after` seconds when given, scrolls it out of view.
+local function selector(clear_after)
+	local script = [[printf 'Question 1/1: allow?\n> 1. Allow\n  ↑/↓ Navigate · enter Select · esc Skip\n']]
+	if clear_after then
+		script = script .. ("; sleep %d; i=0; while [ $i -lt 80 ]; do echo working; i=$((i+1)); done"):format(clear_after)
+	end
+	child.lua(
+		[[
+		require("crew").setup({ agents = { g = { adapter = "agy", cmd = { "sh", "-c", ... .. "; sleep 5" } } } })
+		ws, state = require("crew.workspace"), require("crew.state")
+		notes = {}
+		vim.notify = function(msg) notes[#notes + 1] = msg end
+		g = ws.open("g")
+		g.state = "work"
+		ws.editor()
+	]],
+		{ script }
+	)
+end
+
+T["screen"]["agy's selector footer means it waits on you"] = function()
+	selector()
+	child.lua("vim.wait(3000, function() return g.state == 'ask' end)")
+	eq(child.lua_get("g.state"), "ask")
+	eq(child.lua_get("#notes > 0"), true)
+end
+
+T["screen"]["the footer leaving the screen goes back to work"] = function()
+	selector(1)
+	child.lua("vim.wait(3000, function() return g.state == 'ask' end)")
+	child.lua("vim.wait(4000, function() return g.state == 'work' end)")
+	eq(child.lua_get("g.state"), "work")
+end
+
 T["statusline"]["a Gemini model fills the week limit from gemini-weekly"] = function()
 	two_agents()
 	statusline({ NVIM = true, CREW_ID = true }, '{"model":{"id":"Gemini 3.8 Flash (High)"},' .. QUOTA .. "}")

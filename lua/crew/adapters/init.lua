@@ -11,6 +11,7 @@ local M = {}
 ---@field last_session? fun(agent: crew.Agent, cwd: string): string? Latest session of cwd, for restoring an agent saved with no session id
 ---@field health? fun(agent: crew.Agent, report: crew.HealthReport) Extra :checkhealth lines for a profile
 ---@field usage? crew.Meter[] Usage meters the CLI reports, in display order. None when nil
+---@field waiting_text? string Text the CLI always draws while it waits on the user, watched in its terminal
 
 ---@class crew.HealthReport
 ---@field ok fun(msg: string)
