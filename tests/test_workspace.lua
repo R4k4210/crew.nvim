@@ -116,12 +116,30 @@ T["resume"]["warns and opens nothing when the profile cannot resume"] = function
 	eq(child.lua_get("warned"), "crew: agent sh has no resume args")
 end
 
-T["resume"]["a claude profile resumes with --resume without config"] = function()
+T["resume"]["a claude profile opens the sessions picker"] = function()
 	child.lua([[require("crew").setup({ agents = { work = { cmd = { "/usr/local/bin/claude" }, hooks = false } } })]])
 	child.lua('ws = require("crew.workspace")')
 	capture_cmd()
-	child.lua("ws.resume()")
-	eq(child.lua_get("started[1]"), { "/usr/local/bin/claude", "--resume" })
+	child.lua([[
+		picked = nil
+		require("crew.picker").sessions = function(name) picked = name end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), "work")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+end
+
+T["resume"]["an explicit resume on a claude profile keeps its args"] = function()
+	child.lua([[require("crew").setup({ agents = { work = { cmd = { "claude" }, hooks = false, resume = { "--continue" } } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua([[
+		picked = false
+		require("crew.picker").sessions = function() picked = true end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), false)
+	eq(child.lua_get("started[1]"), { "claude", "--continue" })
 end
 
 T["session save"] = MiniTest.new_set()

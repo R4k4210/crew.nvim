@@ -221,6 +221,75 @@ function M.pick()
 	M.instances("Crew instances", require("crew.workspace").jump, M.hint({ { "enter", "jump" }, { "esc", "cancel" } }))
 end
 
+--- Cut s to at most width display cells, ending in "…" when it was longer.
+---@param s string
+---@param width integer
+---@return string
+local function truncate(s, width)
+	if vim.fn.strdisplaywidth(s) <= width then
+		return s
+	end
+	local chars = vim.fn.strchars(s)
+	while chars > 0 and vim.fn.strdisplaywidth(vim.fn.strcharpart(s, 0, chars)) > width - 1 do
+		chars = chars - 1
+	end
+	return vim.fn.strcharpart(s, 0, chars) .. "…"
+end
+
+--- "today 18:47", "yesterday 21:10", else "02 nov".
+---@param at integer
+---@return string
+local function session_date(at)
+	local day = os.date("%Y-%m-%d", at)
+	if day == os.date("%Y-%m-%d") then
+		return "today " .. os.date("%H:%M", at)
+	elseif day == os.date("%Y-%m-%d", os.time() - 86400) then
+		return "yesterday " .. os.date("%H:%M", at)
+	end
+	return os.date("%d %b", at):lower()
+end
+
+--- Resume one of the cwd's Claude sessions in a new instance of a profile.
+--- Warns and opens nothing when the cwd has no sessions.
+---@param name string Agent profile
+function M.sessions(name)
+	local agent = config.options.agents[name]
+	local cwd = vim.fn.getcwd()
+	local list = agent and require("crew.sessions").list(agent, cwd) or {}
+	if #list == 0 then
+		vim.notify(("crew: no sessions to resume in %s"):format(cwd), vim.log.levels.WARN)
+		return
+	end
+	local rows, widths = {}, { date = 1, branch = 1, title = 0 }
+	for i, s in ipairs(list) do
+		local prompt = s.prompt and s.prompt:match("^[^\n]*") or ""
+		rows[i] = {
+			date = session_date(s.mtime),
+			branch = s.branch or "·",
+			title = truncate(s.title or "", 40),
+			prompt = truncate(prompt, 60),
+		}
+		for key in pairs(widths) do
+			widths[key] = math.max(widths[key], vim.fn.strdisplaywidth(rows[i][key]))
+		end
+	end
+	local items = {}
+	for i, r in ipairs(rows) do
+		local chunks = {
+			{ pad(r.date, widths.date) .. " ", "Number" },
+			{ pad(r.branch, widths.branch), list[i].branch and "Function" or "Comment" },
+			{ " │ ", "Comment" },
+			{ pad(r.title, widths.title), "Normal" },
+			{ " │ ", "Comment" },
+			{ r.prompt, "Comment" },
+		}
+		items[i] = { text = plain(chunks), chunks = chunks, value = list[i].id }
+	end
+	select("Crew sessions", items, function(id)
+		require("crew.workspace").open(name, { "--resume", id })
+	end, { footer = M.hint({ { "enter", "resume" }, { "esc", "cancel" } }) })
+end
+
 --- Name the current instance. Empty clears it, cancel keeps it.
 function M.rename()
 	local ws = require("crew.workspace")

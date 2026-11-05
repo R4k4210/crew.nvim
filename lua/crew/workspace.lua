@@ -196,31 +196,20 @@ function M.open(name, args)
 	return ws
 end
 
---- Args that make an agent resume an earlier session: the profile's own,
---- else --resume alone for claude commands, so Claude shows its picker.
----@param agent crew.Agent
----@return string[]?
-local function resume_args(agent)
-	if agent.resume then
-		return agent.resume
-	end
-	if vim.fs.basename(agent.cmd[1] or "") == "claude" then
-		return { "--resume" }
-	end
-end
-
---- Open an agent that resumes an earlier session.
+--- Open an agent that resumes an earlier session: with the profile's own
+--- resume args, else through crew's session picker for claude commands.
 ---@param name? string Agent profile, defaults to config.default_agent
 ---@return crew.Workspace?
 function M.resume(name)
 	name = name or config.options.default_agent
 	local agent = config.options.agents[name]
-	local args = agent and resume_args(agent)
-	if agent and not args then
-		vim.notify(("crew: agent %s has no resume args"):format(name), vim.log.levels.WARN)
-		return
+	if not agent or agent.resume then
+		return M.open(name, agent and agent.resume)
 	end
-	return M.open(name, args)
+	if vim.fs.basename(agent.cmd[1] or "") == "claude" then
+		return require("crew.picker").sessions(name)
+	end
+	vim.notify(("crew: agent %s has no resume args"):format(name), vim.log.levels.WARN)
 end
 
 --- Go to the editor (the home tab).

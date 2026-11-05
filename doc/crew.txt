@@ -63,8 +63,8 @@ agents                                                    *crew-opts-agents*
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
       resume  list of strings appended to cmd to resume an earlier
-              session. Claude commands default to { "--resume" }, which
-              shows Claude's own session picker
+              session. Without it, Claude commands open crew's session
+              picker (|crew-pickers|) and other commands cannot resume
 
 default_agent                                      *crew-opts-default_agent*
     Profile opened when none is given. Defaults to "claude", or to the first
@@ -100,7 +100,8 @@ the space bar has to reach the agent.
                                                 <C-,> already does it
   <leader>an     n         new                  new instance from a profile
   <leader>aN     n         resume               new instance that resumes an
-                                                earlier session
+                                                earlier session, picked from
+                                                the sessions of the cwd
   <leader>ap     n         pick                 pick an open instance
   <leader>ai     n         rename               name the current instance
   <leader>ax     n         close                close the current instance
@@ -125,6 +126,7 @@ key that leaves terminal mode inside agent buffers, for example "jk".
 :Crew open [profile]  Open an instance of a profile.
 :Crew resume [profile]
                       Open an instance that resumes an earlier session.
+                      Claude profiles pick it from the sessions picker.
 :Crew new             Pick a profile and open it.
 :Crew pick            Pick an open instance and jump to it.
 :Crew jump {N}        Jump to agent N, any number.
@@ -146,6 +148,16 @@ The instance picker lists the slot, profile and name of each instance with
 its context, five hour and weekly usage. The cursor starts on the last
 visited instance, so Enter picks the usual one. Names live only in the
 picker and the header, never in the pills.
+
+The sessions picker opens on <leader>aN and |:Crew| resume for Claude
+profiles without a `resume` option. It lists the Claude sessions of the
+current directory, newest first, with their last activity, git branch,
+title and last prompt. Enter opens a new instance with `--resume <id>`.
+crew reads these rows from Claude's internal session files under the
+profile's config directory ($CLAUDE_CONFIG_DIR, default ~/.claude) and only
+looks at the last 64 KB of each file. That format is undocumented, so a
+field Claude stops writing shows as an empty cell while the session stays
+in the list.
 
 ==============================================================================
 7. AGENT STATE AND USAGE                                          *crew-state*

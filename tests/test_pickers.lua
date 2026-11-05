@@ -169,4 +169,90 @@ T["pick"]["does nothing with no instances"] = function()
 	eq(child.lua_get("called"), false)
 end
 
+T["sessions"] = MiniTest.new_set()
+
+-- A claude profile whose config dir holds two sessions for the cwd, started
+-- through a plain shell. The picker chooses row `pick`.
+local function sessions_rows(pick)
+	child.lua([[
+		config_dir = vim.fn.tempname()
+		require("crew").setup({
+			agents = { claude = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = config_dir }, hooks = false } },
+		})
+		ws = require("crew.workspace")
+		picker = require("crew.picker")
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+		project = require("crew.sessions").dir(require("crew.config").options.agents.claude, vim.fn.getcwd())
+		vim.fn.mkdir(project, "p")
+		local function write(id, lines, mtime)
+			local path = project .. "/" .. id .. ".jsonl"
+			vim.fn.writefile(vim.tbl_map(vim.json.encode, lines), path)
+			vim.uv.fs_utime(path, mtime, mtime)
+		end
+		local now = os.time()
+		write("aaa", {
+			{ type = "user", gitBranch = "feat/workspaces" },
+			{ type = "ai-title", aiTitle = "Plan the sessions picker" },
+			{ type = "last-prompt", lastPrompt = "list the sessions\nsecond line" },
+		}, now)
+		write("bbb", { { type = "user" } }, now - 86400 * 10)
+	]])
+	child.lua(
+		[[
+		local pick = ...
+		vim.ui.select = function(items, opts, on_choice)
+			shown = vim.tbl_map(opts.format_item, items)
+			title = opts.prompt
+			if pick then on_choice(items[pick]) end
+		end
+		picker.sessions("claude")
+	]],
+		{ pick or false }
+	)
+	return child.lua_get("shown")
+end
+
+T["sessions"]["lists sessions newest first with date, branch, title and prompt"] = function()
+	local rows = sessions_rows()
+	eq(#rows, 2)
+	match(rows[1], "^today %d%d:%d%d feat/workspaces │ Plan the sessions picker │ list the sessions$")
+	match(rows[2], "^%d%d %a%a%a +· +│ +│$")
+	eq(child.lua_get("title"), "Crew sessions")
+end
+
+T["sessions"]["rows align"] = function()
+	local rows = sessions_rows()
+	local function col(s)
+		return vim.fn.strdisplaywidth(s:sub(1, s:find("│", 1, true) - 1))
+	end
+	eq(col(rows[1]), col(rows[2]))
+end
+
+T["sessions"]["enter opens claude --resume with the session id"] = function()
+	sessions_rows(2)
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 1)
+	eq(child.lua_get("started[1]"), { "claude", "--resume", "bbb" })
+end
+
+T["sessions"]["warns and opens nothing when there are no sessions"] = function()
+	child.lua([[
+		require("crew").setup({
+			agents = { claude = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = vim.fn.tempname() } } },
+		})
+		warned = nil
+		vim.notify = function(msg) warned = msg end
+		called = false
+		vim.ui.select = function() called = true end
+		require("crew.picker").sessions("claude")
+	]])
+	eq(child.lua_get("called"), false)
+	eq(child.lua_get("vim.tbl_count(require('crew.workspace').workspaces)"), 0)
+	eq(child.lua_get("warned"), "crew: no sessions to resume in " .. child.lua_get("vim.fn.getcwd()"))
+end
+
 return T
