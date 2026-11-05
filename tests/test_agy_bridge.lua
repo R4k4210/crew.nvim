@@ -170,6 +170,18 @@ T["statusline"]["forwards ask, context and the conversation id, then chains the 
 	eq(child.lua_get("a.state"), "work")
 end
 
+T["statusline"]["maps the weekly quota bucket onto the week limit"] = function()
+	two_agents()
+	statusline(
+		{ NVIM = true, CREW_ID = true },
+		'{"quota":{"gemini-weekly":{"remaining_fraction":0.9378,"reset_time":"2026-07-06T07:50:32Z"},"odd":{"remaining_fraction":"x"}}}'
+	)
+	local week = child.lua_get("require('crew.state').limits[a.agent].seven_day")
+	eq(math.floor(week.pct * 100 + 0.5), 622) -- 6.22% used
+	eq(week.resets_at, child.lua_get("require('crew.state').epoch('2026-07-06T07:50:32Z')"))
+	eq(child.lua_get("require('crew.state').limits[a.agent].five_hour"), vim.NIL)
+end
+
 T["statusline"]["leaves a done agent alone while idle"] = function()
 	two_agents()
 	child.lua([[a.state = "done"]])
