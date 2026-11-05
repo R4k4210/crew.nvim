@@ -1,8 +1,9 @@
 ---@class crew.Agent
 ---@field cmd string[] Command that starts the agent CLI
 ---@field env? table<string, string> Extra environment variables for the agent
+---@field adapter? string Adapter of the CLI (claude, agy, plain). Detected from the basename of cmd[1] when unset
 ---@field hooks? boolean Inject crew state hooks into claude commands (default true), false to opt out
----@field resume? string[] Args appended to cmd to resume an earlier session. Claude commands default to { "--resume" }
+---@field resume? string[] Args appended to cmd to resume an earlier session. Overrides the adapter's own resume
 
 ---@class crew.Config
 ---@field agents table<string, crew.Agent> Agent profiles, keyed by name

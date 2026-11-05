@@ -11,7 +11,7 @@ local config = require("crew.config")
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
----@field session_id? string Claude session id, reported by the hooks, nil until the first event
+---@field session_id? string Session id of the agent CLI, reported by the hooks, nil until the first event
 ---@field name? string Label set by the user, shown in the picker and never in the pills
 ---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
 ---@field cwd? string Where the agent works, updated from its statusLine
@@ -172,15 +172,16 @@ function M.open(name, args)
 		buf = vim.api.nvim_get_current_buf(),
 		job = 0,
 	}
-	-- CREW_ID tells the hooks who they are; Neovim adds $NVIM on its own.
-	-- CREW_STATUSLINE is the user's own statusLine, chained by crew's.
-	local hooks = require("crew.hooks")
+	-- The adapter adds what its CLI needs (hooks, status line). CREW_ID
+	-- tells the hooks who they are; Neovim adds $NVIM on its own.
+	local adapter = require("crew.adapters").get(agent)
 	local cmd = vim.list_extend(vim.deepcopy(agent.cmd), args or {})
-	local env = vim.tbl_extend("force", agent.env or {}, { CREW_ID = tostring(ws.id) })
-	if agent.hooks ~= false then
-		env.CREW_STATUSLINE = hooks.original_statusline(cmd, agent.env or {})
+	local extra
+	if adapter.prepare then
+		cmd, extra = adapter.prepare(cmd, agent, ws)
 	end
-	ws.job = vim.fn.jobstart(hooks.command(cmd, agent.hooks), {
+	local env = vim.tbl_extend("force", agent.env or {}, extra or {}, { CREW_ID = tostring(ws.id) })
+	ws.job = vim.fn.jobstart(cmd, {
 		term = true,
 		env = env,
 		on_exit = function()
@@ -205,7 +206,8 @@ function M.open(name, args)
 end
 
 --- Open an agent that resumes an earlier session: with the profile's own
---- resume args, else through crew's session picker for claude commands.
+--- resume args, else through crew's session picker when its adapter lists
+--- sessions, else with the adapter's args for the CLI's own picker.
 ---@param name? string Agent profile, defaults to config.default_agent
 ---@return crew.Workspace?
 function M.resume(name)
@@ -214,8 +216,13 @@ function M.resume(name)
 	if not agent or agent.resume then
 		return M.open(name, agent and agent.resume)
 	end
-	if vim.fs.basename(agent.cmd[1] or "") == "claude" then
+	local adapter = require("crew.adapters").get(agent)
+	if adapter.sessions then
 		return require("crew.picker").sessions(name)
+	end
+	local args = adapter.resume_args and adapter.resume_args(nil)
+	if args then
+		return M.open(name, args)
 	end
 	vim.notify(("crew: agent %s has no resume args"):format(name), vim.log.levels.WARN)
 end

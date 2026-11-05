@@ -100,8 +100,8 @@ function M.load()
 	return agents
 end
 
---- Reopen the saved agents in order, each Claude agent resuming its own
---- conversation. Does nothing while agents are open, to avoid duplicates.
+--- Reopen the saved agents in order, each one resuming its own
+--- conversation when its adapter can. Does nothing while agents are open, to avoid duplicates.
 ---@return integer count Agents reopened
 function M.restore()
 	local workspace = require("crew.workspace")
@@ -117,9 +117,10 @@ function M.restore()
 			if not profile then
 				unknown[#unknown + 1] = a.agent
 			else
-				local claude = vim.fs.basename(profile.cmd[1] or "") == "claude"
+				local adapter = require("crew.adapters").get(profile)
 				local resume = type(a.session_id) == "string" and a.session_id ~= ""
-				local ws = workspace.open(a.agent, (claude and resume) and { "--resume", a.session_id } or nil)
+				local args = resume and adapter.resume_args and adapter.resume_args(a.session_id) or nil
+				local ws = workspace.open(a.agent, args)
 				if ws then
 					count = count + 1
 					ws.session_id = resume and a.session_id or nil

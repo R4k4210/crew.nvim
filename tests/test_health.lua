@@ -42,4 +42,10 @@ T["explains which keys need the kitty keyboard protocol"] = function()
 	H.match(health(), "kitty keyboard protocol")
 end
 
+T["the claude adapter reports the statusLine it chains, with the profile name"] = function()
+	local report = health({ agents = { work = { cmd = { "wrap" }, adapter = "claude" }, sh = { cmd = { "sh" } } } })
+	H.match(report, "work: chains statusLine")
+	H.no_match(report, "sh: chains statusLine", true)
+end
+
 return T

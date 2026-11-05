@@ -104,7 +104,8 @@ end
 T["agent env has CREW_STATUSLINE"] = function()
 	child.lua([[
 		out = vim.fn.tempname()
-		require("crew").setup({ agents = { claude = { cmd = { "sh", "-c", "echo \"$CREW_STATUSLINE\" > " .. out .. "; sleep 5" } } } })
+		-- sh stands in for claude, so pin the adapter the basename would not pick.
+		require("crew").setup({ agents = { claude = { adapter = "claude", cmd = { "sh", "-c", "echo \"$CREW_STATUSLINE\" > " .. out .. "; sleep 5" } } } })
 		require("crew.hooks").original_statusline = function() return "echo from-user" end
 		require("crew.workspace").open("claude")
 		vim.wait(2000, function() return vim.fn.filereadable(out) == 1 and #vim.fn.readfile(out) > 0 end)

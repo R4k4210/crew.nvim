@@ -249,13 +249,15 @@ local function session_date(at)
 	return os.date("%d %b", at):lower()
 end
 
---- Resume one of the cwd's Claude sessions in a new instance of a profile.
---- Warns and opens nothing when the cwd has no sessions.
+--- Resume one of the cwd's sessions in a new instance of a profile, as its
+--- adapter lists and resumes them. Warns and opens nothing when the cwd
+--- has no sessions.
 ---@param name string Agent profile
 function M.sessions(name)
 	local agent = config.options.agents[name]
 	local cwd = vim.fn.getcwd()
-	local list = agent and require("crew.sessions").list(agent, cwd) or {}
+	local adapter = agent and require("crew.adapters").get(agent) or {}
+	local list = adapter.sessions and adapter.resume_args and adapter.sessions(agent, cwd) or {}
 	if #list == 0 then
 		vim.notify(("crew: no sessions to resume in %s"):format(cwd), vim.log.levels.WARN)
 		return
@@ -286,7 +288,7 @@ function M.sessions(name)
 		items[i] = { text = plain(chunks), chunks = chunks, value = list[i].id }
 	end
 	select("Crew sessions", items, function(id)
-		require("crew.workspace").open(name, { "--resume", id })
+		require("crew.workspace").open(name, adapter.resume_args(id))
 	end, { footer = M.hint({ { "enter", "resume" }, { "esc", "cancel" } }) })
 end
 

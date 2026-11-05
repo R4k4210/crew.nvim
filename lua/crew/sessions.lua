@@ -12,11 +12,12 @@ local TAIL = 64 * 1024 -- session files reach megabytes; the tail has what we ne
 ---@field title? string
 ---@field prompt? string
 
---- The profile's CLAUDE_CONFIG_DIR, else the environment's, else ~/.claude.
----@param agent crew.Agent
+--- Claude's config dir: CLAUDE_CONFIG_DIR of the profile env, else of the
+--- environment, else ~/.claude. Shared with crew.hooks.
+---@param env? table<string, string> The profile's extra environment
 ---@return string
-local function config_dir(agent)
-	local env = agent.env or {}
+function M.config_dir(env)
+	env = env or {}
 	return env.CLAUDE_CONFIG_DIR or vim.env.CLAUDE_CONFIG_DIR or vim.fn.expand("~/.claude")
 end
 
@@ -26,7 +27,7 @@ end
 ---@param cwd string
 ---@return string
 function M.dir(agent, cwd)
-	return config_dir(agent) .. "/projects/" .. cwd:gsub("[^%w]", "-")
+	return M.config_dir(agent.env) .. "/projects/" .. cwd:gsub("[^%w]", "-")
 end
 
 --- Ids of the sessions open in a running Claude process, from
@@ -35,7 +36,7 @@ end
 ---@param agent crew.Agent
 ---@return table<string, true>
 local function live(agent)
-	local dir = config_dir(agent) .. "/sessions"
+	local dir = M.config_dir(agent.env) .. "/sessions"
 	local ids = {}
 	for file, kind in vim.fs.dir(dir) do
 		if kind == "file" and file:match("%.json$") then
