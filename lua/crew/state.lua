@@ -52,10 +52,30 @@ end
 --- New state for a hook event, or nil to leave the current one.
 ---@param event string
 ---@param payload table
+---@param ws crew.Workspace
 ---@return crew.State?
-local function next_state(event, payload)
-	if event == "UserPromptSubmit" or event == "PostToolUse" then
+local function next_state(event, payload, ws)
+	-- Claude: UserPromptSubmit. agy: PreInvocation, before every model call.
+	if event == "UserPromptSubmit" or event == "PreInvocation" or event == "PostToolUse" then
 		return "work"
+	elseif event == "StatusLine" then
+		-- agy's status line runs on every refresh, so only a change counts:
+		-- a pending tool confirmation asks, and answering it goes back to work.
+		if payload.pending then
+			return "ask"
+		elseif ws.state == "ask" and payload.busy and not ws.waiting then
+			return "work"
+		end
+	elseif event == "Screen" then
+		-- agy has no "waiting on you" event, so crew watches its terminal for
+		-- the selector it draws (see crew.screen). Only a change counts.
+		if payload.waiting and not ws.waiting then
+			ws.waiting = true
+			return "ask"
+		elseif not payload.waiting and ws.waiting then
+			ws.waiting = false
+			return ws.state == "ask" and "work" or nil
+		end
 	elseif event == "Stop" then
 		return "done"
 	elseif event == "Notification" then
@@ -86,7 +106,7 @@ local function set(ws, new)
 	vim.cmd.redrawstatus({ bang = true })
 end
 
---- Entry point for scripts/hook.lua.
+--- Entry point for scripts/hook.lua and scripts/agy_statusline.lua.
 ---@param id integer
 ---@param event string
 ---@param payload? table
@@ -95,7 +115,13 @@ function M.report(id, event, payload)
 	if not ws then
 		return
 	end
-	local new = next_state(event, payload or {})
+	payload = payload or {}
+	-- Every event carries the current session, so /clear moves it forward.
+	if type(payload.session_id) == "string" and payload.session_id ~= "" and payload.session_id ~= ws.session_id then
+		ws.session_id = payload.session_id
+		require("crew.persist").save()
+	end
+	local new = next_state(event, payload, ws)
 	if new then
 		set(ws, new)
 	end
@@ -133,7 +159,7 @@ local function normalize(limit)
 	return { pct = limit.pct, resets_at = M.epoch(limit.resets_at) }
 end
 
---- Entry point for scripts/statusline.lua.
+--- Entry point for scripts/statusline.lua and scripts/agy_statusline.lua.
 ---@param id integer
 ---@param data { ctx?: number, cwd?: string, five_hour?: table, seven_day?: table }
 function M.usage(id, data)

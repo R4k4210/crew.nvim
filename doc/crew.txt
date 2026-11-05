@@ -30,6 +30,15 @@ each side, colored by the most urgent state they hide.
 The defaults are opinionated and reflect one workflow (Claude Code, snacks,
 bufferline and lualine). Every key, icon and color can be changed.
 
+Any CLI runs as an agent through an adapter, which decides what crew can
+read from it. crew takes the profile's `adapter` option, else the name of
+its command, else `plain`:
+  claude  state icons, usage feed, `--resume <id>` and the sessions picker
+  agy     `--conversation <id>` and the sessions picker, plus state icons
+          and context after |:Crew| setup agy (see |crew-agy|)
+  plain   tabs, pills, jumps and sending only. It resumes through the
+          CLI's own picker when its profile sets `resume`
+
 ==============================================================================
 2. SETUP                                                          *crew-setup*
 
@@ -60,8 +69,18 @@ agents                                                    *crew-opts-agents*
     Each profile takes:
       cmd     list of strings, the command that starts the agent
       env     table of extra environment variables
+      adapter "claude", "agy" or "plain". Detected from the name of
+              cmd[1] when unset, so set it for a wrapper script, for
+              example `adapter = "claude"` on `/opt/bin/my-claude`
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
+      statusline
+              false to hide your own Claude or agy status line inside
+              crew while the usage still reaches the pills (default
+              true). Outside Neovim the CLI keeps showing it
+      resume  list of strings appended to cmd to resume an earlier
+              session. Without it, claude and agy profiles open crew's
+              session picker (|crew-pickers|) and plain ones cannot resume
 
 default_agent                                      *crew-opts-default_agent*
     Profile opened when none is given. Defaults to "claude", or to the first
@@ -96,6 +115,9 @@ the space bar has to reach the agent.
   (off)          n, t      editor               go to the editor, off since
                                                 <C-,> already does it
   <leader>an     n         new                  new instance from a profile
+  <leader>aN     n         resume               new instance that resumes an
+                                                earlier session, picked from
+                                                the sessions of the cwd
   <leader>ap     n         pick                 pick an open instance
   <leader>ai     n         rename               name the current instance
   <leader>ax     n         close                close the current instance
@@ -118,15 +140,34 @@ key that leaves terminal mode inside agent buffers, for example "jk".
                                                                        *:Crew*
 :Crew [list]          List open workspaces.
 :Crew open [profile]  Open an instance of a profile.
+:Crew resume [profile]
+                      Open an instance that resumes an earlier session.
+                      Claude profiles pick it from the sessions picker.
 :Crew new             Pick a profile and open it.
 :Crew pick            Pick an open instance and jump to it.
 :Crew jump {N}        Jump to agent N, any number.
 :Crew editor          Go to the editor.
 :Crew toggle          Go between the editor and the last agent.
 :Crew close [N]       Close agent N, or the current one.
-:Crew close all       Close every agent and go to the editor.
+:Crew close all       Close every agent, forget them and go to the editor.
 :Crew rename [name]   Name the current instance. Empty clears it.
+:Crew restore         Reopen the agents saved for this directory.
+:Crew setup agy [remove]
+                      Install crew's bridge into agy's global config, or
+                      remove it and restore your status line. See
+                      |crew-agy|.
 :Crew config          Print the merged options.
+
+                                                               *crew-restore*
+crew remembers the open agents of each directory and saves them on every
+change, so even a killed terminal keeps the list. When any session manager
+loads a session, crew reopens them in the same order with the same names.
+`:Crew restore` does the same by hand and does nothing while agents are
+open. Claude agents resume their own conversation with `--resume` and agy
+agents with `--conversation`, while other agents start fresh. An agy agent
+saved with no id resumes the latest conversation agy recorded for its
+directory. `<leader>aX` closes every agent and forgets them,
+so they stay closed after a restart.
 
 ==============================================================================
 6. PICKERS                                                      *crew-pickers*
@@ -139,6 +180,33 @@ The instance picker lists the slot, profile and name of each instance with
 its context, five hour and weekly usage. The cursor starts on the last
 visited instance, so Enter picks the usual one. Names live only in the
 picker and the header, never in the pills.
+
+The sessions picker opens on <leader>aN and |:Crew| resume for claude and
+agy profiles without a `resume` option. It lists the Claude sessions of the
+current directory, newest first, with their last activity, git branch,
+title and last prompt. Enter opens a new instance with `--resume <id>`.
+crew reads these rows from Claude's internal session files under the
+profile's config directory ($CLAUDE_CONFIG_DIR, default ~/.claude) and only
+looks at the last 64 KB of each file. That format is undocumented, so a
+field Claude stops writing shows as an empty cell while the session stays
+in the list.
+
+For agy profiles the same picker lists Antigravity's conversations of the
+current directory with their last activity, title and last prompt, read
+through `sqlite3` from ~/.gemini/antigravity-cli/conversation_summaries.db.
+Enter opens a new instance with `--conversation <id>`. Without `sqlite3`
+or the database the list is empty and crew warns that there is nothing
+to resume.
+
+Sessions already open in a crew agent of this Neovim are left out, for
+every adapter. Sessions open in a running Claude process are left out too,
+because a second
+process on the same conversation would end it for the first one when it
+closes.
+
+When several profiles list sessions, <leader>aN shows all of them in one
+picker with a profile column, and Enter resumes with the profile that owns
+the session. |:Crew| resume {profile} keeps to that one profile.
 
 ==============================================================================
 7. AGENT STATE AND USAGE                                          *crew-state*
@@ -159,6 +227,26 @@ each instance and limits belong to the profile.
 
 Both bridges are small Lua scripts that reach Neovim through $NVIM and always
 exit cleanly, so they never block Claude.
+
+                                                                   *crew-agy*
+agy takes no settings per invocation, so `:Crew setup agy` plugs crew into
+its global config once and is safe to run again. It writes a hooks plugin
+to ~/.gemini/config/plugins/crew whose PreInvocation, PostToolUse and Stop
+hooks drive the working and finished icons and report the conversation id.
+It also saves your `statusLine` from ~/.gemini/antigravity-cli/settings.json
+to crew's state directory and puts crew's bridge in its place, keeping a
+timestamped backup of settings.json next to it. The bridge turns a pending
+tool confirmation into the waiting icon, forwards context, then runs your
+saved status line with the same input. Outside crew the hooks do nothing
+and the bridge only runs your status line. agy has two weekly quotas,
+`gemini-weekly` for Gemini models and `3p-weekly` for third party ones,
+so the model in use picks the one shown as the week limit. agy has no
+five hour quota, so agy agents show no 5h meter. agy reports no waiting
+state either, so crew watches the agent terminal for the footer agy draws
+under its questions and permission prompts ("enter Select · esc Skip").
+While it shows, the agent waits on you.
+`:Crew setup agy remove` deletes the plugin and restores your status line.
+Restart agy after either command.
 
 ==============================================================================
 8. PILLS AND HEADER                                               *crew-pills*

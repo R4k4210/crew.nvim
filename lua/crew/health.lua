@@ -45,18 +45,30 @@ function M.check()
 
 	health.start("crew: Claude Code bridge")
 	local hooks = require("crew.hooks")
-	for _, script in ipairs({ hooks.script, hooks.statusline_script }) do
+	for _, script in ipairs({ hooks.script, hooks.statusline_script, hooks.agy_statusline_script }) do
 		if vim.fn.filereadable(script) == 1 then
 			health.ok(vim.fn.fnamemodify(script, ":t") .. " found")
 		else
 			health.error(script .. " is missing", { "reinstall crew.nvim" })
 		end
 	end
+	-- Each adapter reports on its own profiles, prefixed with the profile name.
+	local adapters = require("crew.adapters")
 	for _, name in ipairs(names) do
 		local agent = config.agents[name]
-		if agent.hooks ~= false and vim.fs.basename((agent.cmd or {})[1] or "") == "claude" then
-			local original = hooks.original_statusline(agent.cmd, agent.env or {})
-			health.info(("%s: chains statusLine %s"):format(name, original and ("`" .. original .. "`") or "(none)"))
+		local adapter = adapters.get(agent)
+		if adapter.health then
+			local function prefixed(fn)
+				return function(msg, advice)
+					fn(("%s: %s"):format(name, msg), advice)
+				end
+			end
+			adapter.health(agent, {
+				ok = prefixed(health.ok),
+				info = prefixed(health.info),
+				warn = prefixed(health.warn),
+				error = prefixed(health.error),
+			})
 		end
 	end
 

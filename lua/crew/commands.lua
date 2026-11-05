@@ -16,6 +16,9 @@ local subcommands = {
 	open = function(args)
 		require("crew.workspace").open(args[1])
 	end,
+	resume = function(args)
+		require("crew.workspace").resume(args[1])
+	end,
 	jump = function(args)
 		require("crew.workspace").jump(tonumber(args[1]))
 	end,
@@ -24,6 +27,9 @@ local subcommands = {
 	end,
 	toggle = function()
 		require("crew.workspace").toggle()
+	end,
+	restore = function()
+		require("crew.persist").restore()
 	end,
 	new = function()
 		require("crew.picker").new()
@@ -36,6 +42,13 @@ local subcommands = {
 			return require("crew.picker").rename()
 		end
 		require("crew.workspace").rename(table.concat(args, " "))
+	end,
+	setup = function(args)
+		if args[1] ~= "agy" then
+			vim.notify("crew: usage :Crew setup agy [remove]", vim.log.levels.ERROR)
+			return
+		end
+		require("crew.agy_bridge").run(vim.list_slice(args, 2))
 	end,
 	close = function(args)
 		if args[1] == "all" then
@@ -78,10 +91,13 @@ function M.complete(arglead, cmdline)
 		table.sort(names)
 		return starting_with(names, arglead)
 	end
-	if words[2] == "open" then
+	if words[2] == "open" or words[2] == "resume" then
 		local agents = vim.tbl_keys(require("crew.config").options.agents)
 		table.sort(agents)
 		return starting_with(agents, arglead)
+	end
+	if words[2] == "setup" then
+		return starting_with(position == 3 and { "agy" } or position == 4 and { "remove" } or {}, arglead)
 	end
 	if words[2] == "close" and position == 3 then
 		return starting_with({ "all" }, arglead)

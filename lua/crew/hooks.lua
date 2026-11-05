@@ -23,6 +23,7 @@ function M.hook_command(event)
 end
 
 M.statusline_script = root .. "/scripts/statusline.lua"
+M.agy_statusline_script = root .. "/scripts/agy_statusline.lua"
 
 --- The statusLine runs our script, which forwards usage to Neovim and then
 --- prints whatever the user's own statusLine prints ($CREW_STATUSLINE).
@@ -56,16 +57,12 @@ local function read_settings(value)
 	return ok and type(decoded) == "table" and decoded or {}
 end
 
---- Command for an agent with crew's hooks merged into its --settings.
---- Only claude commands are touched; enabled = false opts out.
+--- Command with crew's hooks and statusLine merged into its --settings,
+--- whatever the executable is called. The claude adapter calls it.
 ---@param cmd string[]
----@param enabled? boolean
 ---@return string[]
-function M.command(cmd, enabled)
+function M.merge(cmd)
 	cmd = vim.deepcopy(cmd)
-	if enabled == false or vim.fs.basename(cmd[1] or "") ~= "claude" then
-		return cmd
-	end
 	local at = vim.fn.index(cmd, "--settings") + 1 -- 0 when missing
 	local settings = at > 0 and cmd[at + 1] and read_settings(cmd[at + 1]) or {}
 	local ours = crew_settings()
@@ -85,6 +82,18 @@ function M.command(cmd, enabled)
 	return cmd
 end
 
+--- Like merge, but only for commands named claude; enabled = false opts
+--- out. Kept for direct callers: crew itself goes through its adapters.
+---@param cmd string[]
+---@param enabled? boolean
+---@return string[]
+function M.command(cmd, enabled)
+	if enabled == false or vim.fs.basename(cmd[1] or "") ~= "claude" then
+		return vim.deepcopy(cmd)
+	end
+	return M.merge(cmd)
+end
+
 --- The statusLine command the agent would run without crew: from its own
 --- --settings first, else from settings.json in its config dir
 --- ($CLAUDE_CONFIG_DIR, default ~/.claude). Nil when there is none.
@@ -97,7 +106,7 @@ function M.original_statusline(cmd, env)
 	if inline.statusLine and inline.statusLine.command then
 		return inline.statusLine.command
 	end
-	local dir = env.CLAUDE_CONFIG_DIR or vim.env.CLAUDE_CONFIG_DIR or vim.fn.expand("~/.claude")
+	local dir = require("crew.sessions").config_dir(env)
 	local file = read_settings(dir .. "/settings.json")
 	return file.statusLine and file.statusLine.command or nil
 end

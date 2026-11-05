@@ -11,6 +11,8 @@ local config = require("crew.config")
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
+---@field waiting? boolean The terminal shows the CLI waiting on the user (crew.screen)
+---@field session_id? string Session id of the agent CLI, reported by the hooks, nil until the first event
 ---@field name? string Label set by the user, shown in the picker and never in the pills
 ---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
 ---@field cwd? string Where the agent works, updated from its statusLine
@@ -32,6 +34,11 @@ local M = {}
 local function changed()
 	vim.cmd.redrawtabline()
 	vim.cmd.redrawstatus({ bang = true })
+end
+
+--- Save the open agents so they come back after a restart.
+local function save()
+	require("crew.persist").save()
 end
 
 ---@type table<integer, crew.Workspace>
@@ -135,12 +142,14 @@ local function remove(ws)
 	compact()
 	require("crew.state").update_blink()
 	changed()
+	save()
 end
 
 --- Open a new agent workspace.
 ---@param name? string Agent profile, defaults to config.default_agent
+---@param args? string[] Extra arguments appended to the profile cmd
 ---@return crew.Workspace?
-function M.open(name)
+function M.open(name, args)
 	name = name or config.options.default_agent
 	local agent = config.options.agents[name]
 	if not agent then
@@ -164,14 +173,16 @@ function M.open(name)
 		buf = vim.api.nvim_get_current_buf(),
 		job = 0,
 	}
-	-- CREW_ID tells the hooks who they are; Neovim adds $NVIM on its own.
-	-- CREW_STATUSLINE is the user's own statusLine, chained by crew's.
-	local hooks = require("crew.hooks")
-	local env = vim.tbl_extend("force", agent.env or {}, { CREW_ID = tostring(ws.id) })
-	if agent.hooks ~= false then
-		env.CREW_STATUSLINE = hooks.original_statusline(agent.cmd, agent.env or {})
+	-- The adapter adds what its CLI needs (hooks, status line). CREW_ID
+	-- tells the hooks who they are; Neovim adds $NVIM on its own.
+	local adapter = require("crew.adapters").get(agent)
+	local cmd = vim.list_extend(vim.deepcopy(agent.cmd), args or {})
+	local extra
+	if adapter.prepare then
+		cmd, extra = adapter.prepare(cmd, agent, ws)
 	end
-	ws.job = vim.fn.jobstart(hooks.command(agent.cmd, agent.hooks), {
+	local env = vim.tbl_extend("force", agent.env or {}, extra or {}, { CREW_ID = tostring(ws.id) })
+	ws.job = vim.fn.jobstart(cmd, {
 		term = true,
 		env = env,
 		on_exit = function()
@@ -183,6 +194,9 @@ function M.open(name)
 	})
 	vim.bo[ws.buf].buflisted = false -- keep it out of bufferline
 	require("crew.keymaps").attach(ws.buf)
+	if adapter.waiting_text then
+		require("crew.screen").watch(ws, adapter.waiting_text)
+	end
 	ws.cwd = vim.fn.getcwd()
 	M.refresh_branch(ws)
 	if config.options.header == "winbar" then
@@ -191,7 +205,38 @@ function M.open(name)
 	M.workspaces[slot] = ws
 	focus(ws)
 	changed()
+	save()
 	return ws
+end
+
+--- Open an agent that resumes an earlier session: with the profile's own
+--- resume args, else through crew's session picker when its adapter lists
+--- sessions, else with the adapter's args for the CLI's own picker. With no
+--- name and several profiles that list sessions, one picker shows them all.
+---@param name? string Agent profile, defaults to config.default_agent
+---@return crew.Workspace?
+function M.resume(name)
+	if not name then
+		local profiles = require("crew.picker").session_profiles()
+		if #profiles > 1 then
+			return require("crew.picker").sessions()
+		end
+		name = profiles[1]
+	end
+	name = name or config.options.default_agent
+	local agent = config.options.agents[name]
+	if not agent or agent.resume then
+		return M.open(name, agent and agent.resume)
+	end
+	local adapter = require("crew.adapters").get(agent)
+	if adapter.sessions then
+		return require("crew.picker").sessions(name)
+	end
+	local args = adapter.resume_args and adapter.resume_args(nil)
+	if args then
+		return M.open(name, args)
+	end
+	vim.notify(("crew: agent %s has no resume args"):format(name), vim.log.levels.WARN)
 end
 
 --- Go to the editor (the home tab).
@@ -236,12 +281,30 @@ function M.close(slot)
 	remove(ws)
 end
 
---- Close every agent and land in the editor. Silent, even with none open.
-function M.close_all()
+--- Close every agent and land in the editor.
+local function close_every()
 	-- Leave first, so no agent tab is current while the tabs go away.
 	M.editor()
 	for _, ws in ipairs(M.ordered()) do
 		remove(ws)
+	end
+end
+
+--- Close every agent and forget them, so a restart does not bring them
+--- back. Silent, even with none open.
+function M.close_all()
+	close_every()
+	require("crew.persist").clear()
+end
+
+--- Called before a session file is written. On exit, close every agent so
+--- :mksession keeps editor files only; a restored session would otherwise
+--- reopen a bare agent terminal outside crew. A save mid session keeps them.
+--- The saved agents stay on disk, so the next start can restore them.
+---@param exiting any v:exiting, vim.NIL until Neovim starts to quit
+function M.before_session_save(exiting)
+	if exiting ~= nil and exiting ~= vim.NIL then
+		require("crew.persist").without_saving(close_every)
 	end
 end
 
@@ -257,6 +320,7 @@ function M.rename(name, slot)
 	name = name and vim.trim(name) or ""
 	ws.name = name ~= "" and name or nil
 	changed()
+	save()
 end
 
 --- Read the git branch of ws.cwd in the background. Sets ws.branch to the

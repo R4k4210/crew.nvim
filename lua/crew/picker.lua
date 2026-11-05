@@ -59,17 +59,40 @@ local STATE_HL = { work = "CrewPillWork", ask = "CrewPillAsk", done = "CrewPillD
 ---@return crew.Chunk[]
 function M.instance_row(entry, widths)
 	local usage = entry.usage or {}
+	local own = require("crew.adapters").meters(config.options.agents[entry.agent] or {})
+	-- Columns any row of the list has; a row whose CLI lacks one leaves it blank.
+	local shown = widths.meters or own
 	local chunks = {
 		{ ("%d  "):format(entry.slot), "Number" },
 		{ pad(entry.agent, widths.agent) .. " ", "Function" },
 		entry.name and { pad(entry.name, widths.name), "Normal" } or { pad("·", widths.name), "Comment" },
-		{ " │ ctx ", "Comment" },
-		percent(usage.ctx),
-		{ " │ 5h ", "Comment" },
 	}
-	vim.list_extend(chunks, limit_cells(usage.five_hour, time_left, 8))
-	chunks[#chunks + 1] = { " wk ", "Comment" }
-	vim.list_extend(chunks, limit_cells(usage.seven_day, date, 14))
+	local cells = {
+		ctx = function()
+			return { { " │ ctx ", "Comment" }, percent(usage.ctx) }
+		end,
+		five_hour = function()
+			return vim.list_extend({ { " │ 5h ", "Comment" } }, limit_cells(usage.five_hour, time_left, 8))
+		end,
+		seven_day = function()
+			local label = shown.five_hour and " wk " or " │ wk "
+			return vim.list_extend({ { label, "Comment" } }, limit_cells(usage.seven_day, date, 14))
+		end,
+	}
+	for _, meter in ipairs({ "ctx", "five_hour", "seven_day" }) do
+		if shown[meter] then
+			local cell = cells[meter]()
+			if own[meter] then
+				vim.list_extend(chunks, cell)
+			else
+				local width = 0
+				for _, c in ipairs(cell) do
+					width = width + vim.fn.strdisplaywidth(c[1])
+				end
+				chunks[#chunks + 1] = { (" "):rep(width), "Comment" }
+			end
+		end
+	end
 	local icon = entry.state and config.options.icons[entry.state]
 	if icon then
 		chunks[#chunks + 1] = { icon, STATE_HL[entry.state] }
@@ -203,10 +226,12 @@ function M.instances(title, on_choice, footer)
 			selected = i
 		end
 	end
-	local widths = { agent = 1, name = 1 }
+	local widths = { agent = 1, name = 1, meters = {} }
 	for _, e in ipairs(entries) do
 		widths.agent = math.max(widths.agent, vim.fn.strdisplaywidth(e.agent))
 		widths.name = math.max(widths.name, vim.fn.strdisplaywidth(e.name or "·"))
+		local agent = config.options.agents[e.agent] or {}
+		widths.meters = vim.tbl_extend("keep", widths.meters, require("crew.adapters").meters(agent))
 	end
 	local items = vim.tbl_map(function(e)
 		local chunks = M.instance_row(e, widths)
@@ -219,6 +244,129 @@ end
 function M.pick()
 	-- Only keys that work inside the picker: its input takes everything else.
 	M.instances("Crew instances", require("crew.workspace").jump, M.hint({ { "enter", "jump" }, { "esc", "cancel" } }))
+end
+
+--- Cut s to at most width display cells, ending in "…" when it was longer.
+---@param s string
+---@param width integer
+---@return string
+local function truncate(s, width)
+	if vim.fn.strdisplaywidth(s) <= width then
+		return s
+	end
+	local chars = vim.fn.strchars(s)
+	while chars > 0 and vim.fn.strdisplaywidth(vim.fn.strcharpart(s, 0, chars)) > width - 1 do
+		chars = chars - 1
+	end
+	return vim.fn.strcharpart(s, 0, chars) .. "…"
+end
+
+--- "today 18:47", "yesterday 21:10", else "02 nov".
+---@param at integer
+---@return string
+local function session_date(at)
+	local day = os.date("%Y-%m-%d", at)
+	if day == os.date("%Y-%m-%d") then
+		return "today " .. os.date("%H:%M", at)
+	elseif day == os.date("%Y-%m-%d", os.time() - 86400) then
+		return "yesterday " .. os.date("%H:%M", at)
+	end
+	return os.date("%d %b", at):lower()
+end
+
+--- Resume one of the cwd's sessions in a new instance of a profile, as its
+--- adapter lists and resumes them. Warns and opens nothing when the cwd
+--- has no sessions.
+---@param name string Agent profile
+function M.sessions(name)
+	local cwd = vim.fn.getcwd()
+	local names = name and { name } or M.session_profiles()
+	-- Profiles sharing a config dir see the same sessions: the first one in
+	-- names, the default profile first, keeps each id.
+	local list, seen = {}, {}
+	-- Sessions already open in a workspace here would only open twice.
+	local open = {}
+	for _, ws in pairs(require("crew.workspace").workspaces) do
+		if ws.session_id then
+			open[ws.session_id] = true
+		end
+	end
+	for _, profile in ipairs(names) do
+		local agent = config.options.agents[profile]
+		local adapter = agent and require("crew.adapters").get(agent) or {}
+		if adapter.sessions and adapter.resume_args then
+			for _, s in ipairs(adapter.sessions(agent, cwd)) do
+				local key = (adapter.name or "") .. ":" .. s.id
+				if not seen[key] and not open[s.id] then
+					seen[key] = true
+					list[#list + 1] = vim.tbl_extend("force", s, { profile = profile, adapter = adapter })
+				end
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.mtime > b.mtime
+	end)
+	if #list == 0 then
+		vim.notify(("crew: no sessions to resume in %s"):format(cwd), vim.log.levels.WARN)
+		return
+	end
+	local with_profile = #names > 1
+	local rows, widths = {}, { date = 1, profile = 0, branch = 1, title = 0 }
+	for i, s in ipairs(list) do
+		local prompt = s.prompt and s.prompt:match("^[^\n]*") or ""
+		rows[i] = {
+			date = session_date(s.mtime),
+			profile = with_profile and s.profile or "",
+			branch = s.branch or "·",
+			title = truncate(s.title or "", 40),
+			prompt = truncate(prompt, 60),
+		}
+		for key in pairs(widths) do
+			widths[key] = math.max(widths[key], vim.fn.strdisplaywidth(rows[i][key]))
+		end
+	end
+	local items = {}
+	for i, r in ipairs(rows) do
+		local chunks = {
+			{ pad(r.date, widths.date) .. " ", "Number" },
+		}
+		if with_profile then
+			chunks[#chunks + 1] = { pad(r.profile, widths.profile) .. " ", "Function" }
+		end
+		vim.list_extend(chunks, {
+			{ pad(r.branch, widths.branch), list[i].branch and "Function" or "Comment" },
+			{ " │ ", "Comment" },
+			{ pad(r.title, widths.title), "Normal" },
+			{ " │ ", "Comment" },
+			{ r.prompt, "Comment" },
+		})
+		items[i] = { text = plain(chunks), chunks = chunks, value = list[i] }
+	end
+	select("Crew sessions", items, function(s)
+		require("crew.workspace").open(s.profile, s.adapter.resume_args(s.id))
+	end, { footer = M.hint({ { "enter", "resume" }, { "esc", "cancel" } }) })
+end
+
+--- Profiles whose adapter lists sessions, the default profile first, then
+--- by name. A profile with its own resume args keeps that path instead.
+---@return string[]
+function M.session_profiles()
+	local names = {}
+	for profile, agent in pairs(config.options.agents) do
+		local adapter = require("crew.adapters").get(agent)
+		if not agent.resume and adapter.sessions and adapter.resume_args then
+			names[#names + 1] = profile
+		end
+	end
+	local default = config.options.default_agent
+	table.sort(names, function(a, b)
+		if (a == default) ~= (b == default) then
+			return a == default
+		end
+		return a < b
+	end)
+	return names
 end
 
 --- Name the current instance. Empty clears it, cancel keeps it.

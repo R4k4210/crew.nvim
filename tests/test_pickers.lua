@@ -6,7 +6,7 @@ local child, T = H.new()
 local function setup()
 	child.lua([[
 		vim.g.mapleader = " "
-		require("crew").setup({ agents = { sh = { cmd = { "sh" } }, zsh = { cmd = { "sh" } } }, default_agent = "sh" })
+		require("crew").setup({ agents = { sh = { adapter = "claude", cmd = { "sh" }, hooks = false }, zsh = { adapter = "claude", cmd = { "sh" }, hooks = false } }, default_agent = "sh" })
 		ws = require("crew.workspace")
 		picker = require("crew.picker")
 	]])
@@ -143,6 +143,38 @@ T["pick"]["row has its name and dashes for missing usage"] = function()
 	match(row, "ctx    –", true)
 end
 
+T["pick"]["an agy row leaves the 5h cell blank and stays aligned"] = function()
+	child.lua([[
+		require("crew").setup({ agents = {
+			c = { adapter = "claude", cmd = { "sh" }, hooks = false },
+			g = { adapter = "agy", cmd = { "sh" } },
+		}, default_agent = "c" })
+		ws, picker = require("crew.workspace"), require("crew.picker")
+		ws.open("c"); ws.open("g"); ws.editor()
+		vim.ui.select = function(items, opts) shown = vim.tbl_map(opts.format_item, items) end
+		picker.pick()
+	]])
+	local rows = child.lua_get("shown")
+	match(rows[1], "5h", true)
+	eq(rows[2]:find("5h", 1, true), nil)
+	local function col(s, pat)
+		return vim.fn.strdisplaywidth(s:sub(1, s:find(pat, 1, true) - 1))
+	end
+	eq(col(rows[1], " wk"), col(rows[2], " wk"))
+end
+
+T["pick"]["only agy rows drop the 5h column"] = function()
+	child.lua([[
+		require("crew").setup({ agents = { g = { adapter = "agy", cmd = { "sh" } } } })
+		ws, picker = require("crew.workspace"), require("crew.picker")
+		ws.open("g"); ws.open("g"); ws.editor()
+		vim.ui.select = function(items, opts) shown = vim.tbl_map(opts.format_item, items) end
+		picker.pick()
+	]])
+	local rows = child.lua_get("shown")
+	match(rows[1], "^1  g +· │ ctx +– │ wk +–$")
+end
+
 T["pick"]["rows align"] = function()
 	local rows = pick_rows()
 	local function col(s, pat)
@@ -167,6 +199,159 @@ T["pick"]["does nothing with no instances"] = function()
 		picker.pick()
 	]])
 	eq(child.lua_get("called"), false)
+end
+
+T["sessions"] = MiniTest.new_set()
+
+-- A claude profile whose config dir holds two sessions for the cwd, started
+-- through a plain shell. The picker chooses row `pick`.
+local function sessions_rows(pick)
+	child.lua([[
+		config_dir = vim.fn.tempname()
+		require("crew").setup({
+			agents = { claude = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = config_dir }, hooks = false } },
+		})
+		ws = require("crew.workspace")
+		picker = require("crew.picker")
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+		project = require("crew.sessions").dir(require("crew.config").options.agents.claude, vim.fn.getcwd())
+		vim.fn.mkdir(project, "p")
+		local function write(id, lines, mtime)
+			local path = project .. "/" .. id .. ".jsonl"
+			vim.fn.writefile(vim.tbl_map(vim.json.encode, lines), path)
+			vim.uv.fs_utime(path, mtime, mtime)
+		end
+		local now = os.time()
+		write("aaa", {
+			{ type = "user", gitBranch = "feat/workspaces" },
+			{ type = "ai-title", aiTitle = "Plan the sessions picker" },
+			{ type = "last-prompt", lastPrompt = "list the sessions\nsecond line" },
+		}, now)
+		write("bbb", { { type = "user" } }, now - 86400 * 10)
+	]])
+	child.lua(
+		[[
+		local pick = ...
+		vim.ui.select = function(items, opts, on_choice)
+			shown = vim.tbl_map(opts.format_item, items)
+			title = opts.prompt
+			if pick then on_choice(items[pick]) end
+		end
+		picker.sessions("claude")
+	]],
+		{ pick or false }
+	)
+	return child.lua_get("shown")
+end
+
+T["sessions"]["lists sessions newest first with date, branch, title and prompt"] = function()
+	local rows = sessions_rows()
+	eq(#rows, 2)
+	match(rows[1], "^today %d%d:%d%d feat/workspaces │ Plan the sessions picker │ list the sessions$")
+	match(rows[2], "^%d%d %a%a%a +· +│ +│$")
+	eq(child.lua_get("title"), "Crew sessions")
+end
+
+T["sessions"]["rows align"] = function()
+	local rows = sessions_rows()
+	local function col(s)
+		return vim.fn.strdisplaywidth(s:sub(1, s:find("│", 1, true) - 1))
+	end
+	eq(col(rows[1]), col(rows[2]))
+end
+
+T["sessions"]["enter opens claude --resume with the session id"] = function()
+	sessions_rows(2)
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 1)
+	eq(child.lua_get("started[1]"), { "claude", "--resume", "bbb" })
+end
+
+T["sessions"]["warns and opens nothing when there are no sessions"] = function()
+	child.lua([[
+		require("crew").setup({
+			agents = { claude = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = vim.fn.tempname() } } },
+		})
+		warned = nil
+		vim.notify = function(msg) warned = msg end
+		called = false
+		vim.ui.select = function() called = true end
+		require("crew.picker").sessions("claude")
+	]])
+	eq(child.lua_get("called"), false)
+	eq(child.lua_get("vim.tbl_count(require('crew.workspace').workspaces)"), 0)
+	eq(child.lua_get("warned"), "crew: no sessions to resume in " .. child.lua_get("vim.fn.getcwd()"))
+end
+
+-- Profiles a and b each with one session; c shares a's config dir.
+local function merged_rows(pick, with_shared)
+	child.lua(
+		[[
+		local with_shared = ...
+		dir_a, dir_b = vim.fn.tempname(), vim.fn.tempname()
+		local agents = {
+			a = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_a }, hooks = false },
+			b = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_b }, hooks = false },
+		}
+		if with_shared then
+			agents.c = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_a }, hooks = false }
+		end
+		require("crew").setup({ agents = agents, default_agent = "a" })
+		ws, picker, sessions = require("crew.workspace"), require("crew.picker"), require("crew.sessions")
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+		local function write(name, id, title, mtime)
+			local project = sessions.dir(require("crew.config").options.agents[name], vim.fn.getcwd())
+			vim.fn.mkdir(project, "p")
+			local path = project .. "/" .. id .. ".jsonl"
+			vim.fn.writefile({ vim.json.encode({ type = "ai-title", aiTitle = title }) }, path)
+			vim.uv.fs_utime(path, mtime, mtime)
+		end
+		local now = os.time()
+		write("a", "old", "From a", now - 60)
+		write("b", "new", "From b", now)
+	]],
+		{ with_shared or false }
+	)
+	child.lua(
+		[[
+		local pick = ...
+		vim.ui.select = function(items, opts, on_choice)
+			shown = vim.tbl_map(opts.format_item, items)
+			if pick then on_choice(items[pick]) end
+		end
+		picker.sessions()
+	]],
+		{ pick or false }
+	)
+	return child.lua_get("shown")
+end
+
+T["sessions"]["with no profile lists every profile, newest first, with a profile column"] = function()
+	local rows = merged_rows()
+	eq(#rows, 2)
+	match(rows[1], "^today %d%d:%d%d b +· +│ From b")
+	match(rows[2], "^today %d%d:%d%d a +· +│ From a")
+end
+
+T["sessions"]["enter resumes with the profile that owns the session"] = function()
+	merged_rows(1)
+	eq(child.lua_get("ws.current().agent"), "b")
+	eq(child.lua_get("started[1]"), { "claude", "--resume", "new" })
+end
+
+T["sessions"]["profiles sharing a config dir show a session once"] = function()
+	local rows = merged_rows(nil, true)
+	eq(#rows, 2)
+	match(rows[2], "^today %d%d:%d%d a +· +│ From a") -- the default profile wins
 end
 
 return T

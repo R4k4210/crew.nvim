@@ -11,7 +11,7 @@ local function setup(opts)
 		vim.fn.mkdir(repo, "p")
 		vim.fn.system({ "git", "-C", repo, "init", "-q", "-b", "crew-test" })
 		vim.cmd.cd(repo)
-		require("crew").setup(vim.tbl_extend("force", { agents = { claude = { cmd = { "sh" }, hooks = false } } }, ... or {}))
+		require("crew").setup(vim.tbl_extend("force", { agents = { claude = { adapter = "claude", cmd = { "sh" }, hooks = false } } }, ... or {}))
 		ws, status, state = require("crew.workspace"), require("crew.status"), require("crew.state")
 		bl = require("crew.bufferline")
 	]], { opts })
@@ -198,6 +198,29 @@ T["fill background"]["a percentage changes color when its level changes"] = func
 	local low = child.lua_get("(function() state.usage(ws.current().id, { ctx = 10 }); return pct_fg() end)()")
 	local high = child.lua_get("(function() state.usage(ws.current().id, { ctx = 95 }); return pct_fg() end)()")
 	H.neq(high, low)
+end
+
+T["meters follow the adapter"] = MiniTest.new_set()
+
+T["meters follow the adapter"]["agy shows ctx and wk, never 5h"] = function()
+	setup({ agents = { agy = { adapter = "agy", cmd = { "sh" } } } })
+	child.lua([[
+		ws.open("agy")
+		state.usage(ws.current().id, { ctx = 30, seven_day = { pct = 6, resets_at = os.time() + 9000 } })
+		h = text(status.header())
+	]])
+	local h = child.lua_get("h")
+	match(h, "ctx  30%", true)
+	match(h, "wk   6%", true)
+	eq(h:find("5h", 1, true), nil)
+end
+
+T["meters follow the adapter"]["a plain CLI shows no meters"] = function()
+	setup({ agents = { tool = { cmd = { "sh" } } } })
+	child.lua('ws.open("tool"); h = text(status.header())')
+	local h = child.lua_get("h")
+	eq(h:find("ctx", 1, true), nil)
+	eq(h:find("wk", 1, true), nil)
 end
 
 return T

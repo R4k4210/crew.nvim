@@ -82,6 +82,99 @@ T["close_all"]["closes every agent and lands in the editor"] = function()
 	eq(child.lua_get([[#vim.tbl_filter(function(b) return vim.bo[b].buftype == "terminal" end, vim.api.nvim_list_bufs())]]), 0)
 end
 
+T["resume"] = MiniTest.new_set()
+
+-- Records the command each agent starts with, then runs a plain shell.
+local function capture_cmd()
+	child.lua([[
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+	]])
+end
+
+T["resume"]["opens an agent with the profile resume args"] = function()
+	child.lua([[require("crew").setup({ agents = { sh = { cmd = { "sh" }, resume = { "--resume" } } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua("ws.resume()")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 1)
+	eq(child.lua_get("started[1]"), { "sh", "--resume" })
+end
+
+T["resume"]["warns and opens nothing when the profile cannot resume"] = function()
+	setup()
+	child.lua([[
+		warned = nil
+		vim.notify = function(msg) warned = msg end
+		ws.resume()
+	]])
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("warned"), "crew: agent sh has no resume args")
+end
+
+T["resume"]["a claude profile opens the sessions picker"] = function()
+	child.lua([[require("crew").setup({ agents = { work = { cmd = { "/usr/local/bin/claude" }, hooks = false } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua([[
+		picked = nil
+		require("crew.picker").sessions = function(name) picked = name end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), "work")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+end
+
+T["resume"]["several profiles with sessions open the merged picker"] = function()
+	child.lua([[require("crew").setup({ agents = {
+		sh = { cmd = { "sh" } },
+		a = { cmd = { "claude" }, hooks = false },
+		b = { cmd = { "agy" } },
+	} })]])
+	child.lua([[
+		ws = require("crew.workspace")
+		picked = "untouched"
+		require("crew.picker").sessions = function(name) picked = name end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), vim.NIL)
+end
+
+T["resume"]["an explicit resume on a claude profile keeps its args"] = function()
+	child.lua([[require("crew").setup({ agents = { work = { cmd = { "claude" }, hooks = false, resume = { "--continue" } } } })]])
+	child.lua('ws = require("crew.workspace")')
+	capture_cmd()
+	child.lua([[
+		picked = false
+		require("crew.picker").sessions = function() picked = true end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), false)
+	eq(child.lua_get("started[1]"), { "claude", "--continue" })
+end
+
+T["session save"] = MiniTest.new_set()
+
+T["session save"]["on exit closes agents so the session holds editor files only"] = function()
+	setup()
+	open(2)
+	child.lua("ws.before_session_save(0)")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
+	eq(child.lua_get("#vim.api.nvim_list_tabpages()"), 1)
+end
+
+T["session save"]["mid session keeps agents open"] = function()
+	setup()
+	open(2)
+	child.lua("vim.api.nvim_exec_autocmds('User', { pattern = 'PersistenceSavePre' })")
+	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 2)
+	eq(child.lua_get("#vim.api.nvim_list_tabpages()"), 3)
+end
+
 T["close_all"]["is silent and safe with no agents"] = function()
 	setup()
 	child.lua([[

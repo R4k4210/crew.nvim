@@ -177,13 +177,19 @@ function M.header(ws)
 	if ws.branch then
 		chunks[#chunks + 1] = { "  " .. ws.branch, "CrewHeaderDim" }
 	end
+	-- Only the meters this agent's CLI reports.
+	local shown = require("crew.adapters").meters(require("crew.config").options.agents[ws.agent] or {})
+	local first = true
 	for _, meter in ipairs({
-		{ "   ctx ", usage.ctx },
-		{ "  5h ", usage.five_hour and usage.five_hour.pct },
-		{ "  wk ", usage.seven_day and usage.seven_day.pct },
+		{ "ctx", "ctx ", usage.ctx },
+		{ "five_hour", "5h ", usage.five_hour and usage.five_hour.pct },
+		{ "seven_day", "wk ", usage.seven_day and usage.seven_day.pct },
 	}) do
-		chunks[#chunks + 1] = { meter[1], "CrewHeaderDim" }
-		chunks[#chunks + 1] = percent(meter[2])
+		if shown[meter[1]] then
+			chunks[#chunks + 1] = { (first and "   " or "  ") .. meter[2], "CrewHeaderDim" }
+			chunks[#chunks + 1] = percent(meter[3])
+			first = false
+		end
 	end
 	chunks[#chunks + 1] = { " ", "CrewHeaderDim" }
 	return chunks
