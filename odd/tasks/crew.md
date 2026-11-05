@@ -79,6 +79,8 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 - [ ] **F2 Session restore without persistence.nvim.** Only the save side is persistence specific (`PersistenceSavePre`). Proposal: on `SessionLoadPost`, close terminals the session recreated from an agent command before restoring, so any session manager works; add `restore = "session" | "startup" | false`. Not started.
 - [ ] **F3 Agent adapters.** Move Claude specifics (`hooks.lua`, `sessions.lua`, the `basename == "claude"` checks) behind one contract per agent with optional capabilities (command injection, resume args, sessions, live check); a `plain` default implements none. Composition, not inheritance, matching sidekick.nvim (`sk/cli/{tool}.lua`) and CodeCompanion (`adapters.extend`). Order: Claude first with no behaviour change, then agy (installed, `--conversation <id>`, statusLine carries `agent_state`), Codex and Gemini once installed. Research of 2026-11-05: Codex hooks need hash trust or a bypass flag; Gemini hooks inject through `GEMINI_CLI_SYSTEM_SETTINGS_PATH`; agy has no per invocation config. Not started.
 
+- [ ] **F4 Worktree per agent.** Asked on 2026-11-05. Claude already has `-w, --worktree [name]`, so a profile `{ cmd = { "claude", "--worktree" } }` works today. Unverified gap: sessions of a worktree live under its own path, so the picker and restore (keyed by Neovim cwd) would miss them. Not default; revisit if the user adopts it.
+
 ## Progress
 
 - 2026-11-03: name chosen (`crew.nvim`), repo folder created, mockup saved, plan written. Git initialized with no commits yet.
