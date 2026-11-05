@@ -46,7 +46,11 @@ The snippet below installs crew with [lazy.nvim](https://github.com/folke/lazy.n
 }
 ```
 
-Your `agents` table replaces the default one, so list every profile you want to pick from. Any CLI works as an agent while Claude Code agents also report their state back to Neovim.
+Your `agents` table replaces the default one, so list every profile you want to pick from.
+
+### Claude Code only, for now
+
+Any CLI runs as an agent in its own tab with numbers, pills, jumps and sending files, but several features read what Claude Code exposes and do nothing for other agents yet. The state icons, the usage feed and the sessions picker on `<leader>aN` only work with commands named `claude`. Another CLI can still resume through its own picker when its profile sets `resume`, for example `resume = { "resume" }` for Codex.
 
 ## Keys
 
