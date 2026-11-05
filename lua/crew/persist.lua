@@ -118,12 +118,15 @@ function M.restore()
 				unknown[#unknown + 1] = a.agent
 			else
 				local adapter = require("crew.adapters").get(profile)
-				local resume = type(a.session_id) == "string" and a.session_id ~= ""
-				local args = resume and adapter.resume_args and adapter.resume_args(a.session_id) or nil
+				local id = type(a.session_id) == "string" and a.session_id ~= "" and a.session_id or nil
+				if not id and adapter.last_session then
+					id = adapter.last_session(profile, type(a.cwd) == "string" and a.cwd or vim.fn.getcwd())
+				end
+				local args = id and adapter.resume_args and adapter.resume_args(id) or nil
 				local ws = workspace.open(a.agent, args)
 				if ws then
 					count = count + 1
-					ws.session_id = resume and a.session_id or nil
+					ws.session_id = id
 					if type(a.name) == "string" then
 						workspace.rename(a.name, ws.slot)
 					end

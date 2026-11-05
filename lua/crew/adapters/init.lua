@@ -8,6 +8,7 @@ local M = {}
 ---@field prepare? fun(cmd: string[], agent: crew.Agent, ws: crew.Workspace): string[], table<string, string>? Final command and extra env
 ---@field resume_args? fun(id?: string): string[]? Args that resume session id, or with nil open the CLI's own picker. Nil when it cannot
 ---@field sessions? fun(agent: crew.Agent, cwd: string): crew.Session[] Sessions of cwd for crew's picker, newest first
+---@field last_session? fun(agent: crew.Agent, cwd: string): string? Latest session of cwd, for restoring an agent saved with no session id
 ---@field health? fun(agent: crew.Agent, report: crew.HealthReport) Extra :checkhealth lines for a profile
 
 ---@class crew.HealthReport

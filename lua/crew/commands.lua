@@ -43,6 +43,13 @@ local subcommands = {
 		end
 		require("crew.workspace").rename(table.concat(args, " "))
 	end,
+	setup = function(args)
+		if args[1] ~= "agy" then
+			vim.notify("crew: usage :Crew setup agy [remove]", vim.log.levels.ERROR)
+			return
+		end
+		require("crew.agy_bridge").run(vim.list_slice(args, 2))
+	end,
 	close = function(args)
 		if args[1] == "all" then
 			return require("crew.workspace").close_all()
@@ -88,6 +95,9 @@ function M.complete(arglead, cmdline)
 		local agents = vim.tbl_keys(require("crew.config").options.agents)
 		table.sort(agents)
 		return starting_with(agents, arglead)
+	end
+	if words[2] == "setup" then
+		return starting_with(position == 3 and { "agy" } or position == 4 and { "remove" } or {}, arglead)
 	end
 	if words[2] == "close" and position == 3 then
 		return starting_with({ "all" }, arglead)

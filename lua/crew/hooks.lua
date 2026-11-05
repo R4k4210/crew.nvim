@@ -23,6 +23,7 @@ function M.hook_command(event)
 end
 
 M.statusline_script = root .. "/scripts/statusline.lua"
+M.agy_statusline_script = root .. "/scripts/agy_statusline.lua"
 
 --- The statusLine runs our script, which forwards usage to Neovim and then
 --- prints whatever the user's own statusLine prints ($CREW_STATUSLINE).

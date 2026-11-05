@@ -45,7 +45,7 @@ function M.check()
 
 	health.start("crew: Claude Code bridge")
 	local hooks = require("crew.hooks")
-	for _, script in ipairs({ hooks.script, hooks.statusline_script }) do
+	for _, script in ipairs({ hooks.script, hooks.statusline_script, hooks.agy_statusline_script }) do
 		if vim.fn.filereadable(script) == 1 then
 			health.ok(vim.fn.fnamemodify(script, ":t") .. " found")
 		else

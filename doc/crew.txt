@@ -34,7 +34,8 @@ Any CLI runs as an agent through an adapter, which decides what crew can
 read from it. crew takes the profile's `adapter` option, else the name of
 its command, else `plain`:
   claude  state icons, usage feed, `--resume <id>` and the sessions picker
-  agy     `--conversation <id>` and the sessions picker, no state or usage
+  agy     `--conversation <id>` and the sessions picker, plus state icons
+          and context after |:Crew| setup agy (see |crew-agy|)
   plain   tabs, pills, jumps and sending only. It resumes through the
           CLI's own picker when its profile sets `resume`
 
@@ -74,9 +75,9 @@ agents                                                    *crew-opts-agents*
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
       statusline
-              false to hide your own Claude status line inside crew
-              while the usage still reaches the pills (default true).
-              Outside Neovim claude keeps showing it
+              false to hide your own Claude or agy status line inside
+              crew while the usage still reaches the pills (default
+              true). Outside Neovim the CLI keeps showing it
       resume  list of strings appended to cmd to resume an earlier
               session. Without it, claude and agy profiles open crew's
               session picker (|crew-pickers|) and plain ones cannot resume
@@ -151,6 +152,10 @@ key that leaves terminal mode inside agent buffers, for example "jk".
 :Crew close all       Close every agent, forget them and go to the editor.
 :Crew rename [name]   Name the current instance. Empty clears it.
 :Crew restore         Reopen the agents saved for this directory.
+:Crew setup agy [remove]
+                      Install crew's bridge into agy's global config, or
+                      remove it and restore your status line. See
+                      |crew-agy|.
 :Crew config          Print the merged options.
 
                                                                *crew-restore*
@@ -158,8 +163,10 @@ crew remembers the open agents of each directory and saves them on every
 change, so even a killed terminal keeps the list. When any session manager
 loads a session, crew reopens them in the same order with the same names.
 `:Crew restore` does the same by hand and does nothing while agents are
-open. Claude agents resume their own conversation with `--resume`, while
-other agents start fresh. `<leader>aX` closes every agent and forgets them,
+open. Claude agents resume their own conversation with `--resume` and agy
+agents with `--conversation`, while other agents start fresh. An agy agent
+saved with no id resumes the latest conversation agy recorded for its
+directory. `<leader>aX` closes every agent and forgets them,
 so they stay closed after a restart.
 
 ==============================================================================
@@ -191,7 +198,9 @@ Enter opens a new instance with `--conversation <id>`. Without `sqlite3`
 or the database the list is empty and crew warns that there is nothing
 to resume.
 
-Sessions open in a running Claude process are left out, because a second
+Sessions already open in a crew agent of this Neovim are left out, for
+every adapter. Sessions open in a running Claude process are left out too,
+because a second
 process on the same conversation would end it for the first one when it
 closes.
 
@@ -218,6 +227,21 @@ each instance and limits belong to the profile.
 
 Both bridges are small Lua scripts that reach Neovim through $NVIM and always
 exit cleanly, so they never block Claude.
+
+                                                                   *crew-agy*
+agy takes no settings per invocation, so `:Crew setup agy` plugs crew into
+its global config once and is safe to run again. It writes a hooks plugin
+to ~/.gemini/config/plugins/crew whose PreInvocation, PostToolUse and Stop
+hooks drive the working and finished icons and report the conversation id.
+It also saves your `statusLine` from ~/.gemini/antigravity-cli/settings.json
+to crew's state directory and puts crew's bridge in its place, keeping a
+timestamped backup of settings.json next to it. The bridge turns a pending
+tool confirmation into the waiting icon, forwards context, then runs your
+saved status line with the same input. Outside crew the hooks do nothing
+and the bridge only runs your status line. agy reports quota buckets with
+no documented window, so agy pills show context only.
+`:Crew setup agy remove` deletes the plugin and restores your status line.
+Restart agy after either command.
 
 ==============================================================================
 8. PILLS AND HEADER                                               *crew-pills*

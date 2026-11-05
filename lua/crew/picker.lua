@@ -259,13 +259,20 @@ function M.sessions(name)
 	-- Profiles sharing a config dir see the same sessions: the first one in
 	-- names, the default profile first, keeps each id.
 	local list, seen = {}, {}
+	-- Sessions already open in a workspace here would only open twice.
+	local open = {}
+	for _, ws in pairs(require("crew.workspace").workspaces) do
+		if ws.session_id then
+			open[ws.session_id] = true
+		end
+	end
 	for _, profile in ipairs(names) do
 		local agent = config.options.agents[profile]
 		local adapter = agent and require("crew.adapters").get(agent) or {}
 		if adapter.sessions and adapter.resume_args then
 			for _, s in ipairs(adapter.sessions(agent, cwd)) do
 				local key = (adapter.name or "") .. ":" .. s.id
-				if not seen[key] then
+				if not seen[key] and not open[s.id] then
 					seen[key] = true
 					list[#list + 1] = vim.tbl_extend("force", s, { profile = profile, adapter = adapter })
 				end
