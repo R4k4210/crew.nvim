@@ -55,12 +55,14 @@ Each profile runs through an adapter, picked from its `adapter` option or else f
 | Adapter | State pills | Usage | Resume | Sessions picker |
 |---|---|---|---|---|
 | `claude` | yes | yes | `--resume <id>` | yes |
-| `agy` | yes, after `:Crew setup agy` | context only, after `:Crew setup agy` | `--conversation <id>` | yes |
+| `agy` | yes, after `:Crew setup agy` | context and week, after `:Crew setup agy` | `--conversation <id>` | yes |
 | `plain` | no | no | no | no |
 
 A wrapper script around Claude Code keeps every Claude feature when its profile names the adapter, for example `work = { cmd = { "/opt/bin/my-claude-wrapper" }, adapter = "claude" }`. A `plain` CLI can still resume through its own picker when its profile sets `resume`, for example `resume = { "resume" }` for Codex. The `agy` sessions picker reads Antigravity's local conversation index and needs `sqlite3` on the PATH.
 
-agy has no per invocation settings flag, so `:Crew setup agy` plugs crew into its global config once. It installs a hooks plugin under `~/.gemini/config/plugins/crew` for the work and done states and the conversation id, then sets crew's bridge as the `statusLine` in `~/.gemini/antigravity-cli/settings.json` for the ask state and context. Your own status line is saved first and the bridge keeps running it, so agy looks the same inside and outside Neovim. Outside crew both pieces do nothing else. A timestamped backup of `settings.json` stays next to it, and `:Crew setup agy remove` puts your status line back. agy has two weekly quotas, `gemini-weekly` for Gemini models and `3p-weekly` for third party ones, so the model in use picks the one shown as the week limit. agy has no five hour quota, so agy agents show no 5h meter. Restart agy after either command.
+agy has no per invocation settings flag, so `:Crew setup agy` plugs crew into its global config once. It installs a hooks plugin under `~/.gemini/config/plugins/crew` for the work and done states and the conversation id, then sets crew's bridge as the `statusLine` in `~/.gemini/antigravity-cli/settings.json` for the ask state and context. Your own status line is saved first and the bridge keeps running it, so agy looks the same inside and outside Neovim. Outside crew both pieces do nothing else. A timestamped backup of `settings.json` stays next to it, while `:Crew setup agy remove` puts your status line back. agy has two weekly quotas, `gemini-weekly` for Gemini models and `3p-weekly` for third party ones, so the model in use picks the one shown as the week limit. agy has no five hour quota, so agy agents show no 5h meter. Restart agy after either command.
+
+agy reports no state while it waits on you, so crew watches the agent terminal for the footer agy draws under its questions and permission prompts (`enter Select · esc Skip`). While that footer is on screen the agent shows `?` until you answer.
 
 ## Keys
 
@@ -71,7 +73,7 @@ All keys live under `<leader>a` except the tab switching ones, which need to wor
 | `<C-,>` | normal, terminal | Toggle between the editor and the last agent |
 | `<C-1>` to `<C-9>` | normal, terminal | Jump to agent N, silently ignored when it is empty |
 | `<leader>an` | normal | New instance, picking a profile when there are several |
-| `<leader>aN` | normal | New instance that resumes an earlier session, picked from the sessions of the cwd |
+| `<leader>aN` | normal | Resume an earlier session of the cwd, picked from every profile at once |
 | `<leader>ap` | normal | Pick an open instance |
 | `<leader>ai` | normal | Name the current instance |
 | `<leader>ax` | normal | Close the current instance |
@@ -93,6 +95,7 @@ opts = {
     toggle = "<C-,>",
     editor = "<C-0>", -- off by default, since <C-,> already reaches the editor
     new = "<leader>cn",
+    resume = "<leader>cN",
     close = "<leader>cx",
     close_all = "<leader>cX",
     pick = "<leader>cp",
@@ -126,7 +129,15 @@ crew opens its own snacks pickers with no preview window, so your global picker 
 
 ![The instance picker](docs/images/picker.png)
 
-Names are optional labels you set with `<leader>ai`. They appear in the picker and never in the pills, which keeps the pills one or two cells wide however long the name is.
+Names are optional labels you set with `<leader>ai`. They appear in the picker and never in the pills, which keeps the pills one or two cells wide however long the name is. A meter that an agent's CLI does not report stays blank in its row, so a Claude row and an agy row still line up.
+
+### Sessions picker
+
+`<leader>aN` lists the earlier sessions of the current directory, newest first, with their last activity, branch, title and last prompt. When several profiles can list sessions, they share one picker with a profile column where Enter resumes each session with the profile that owns it. `:Crew resume claude` keeps to a single profile.
+
+![The sessions picker with Claude and agy sessions](docs/images/sessions.png)
+
+Sessions already open are left out, because a second process on the same conversation would end it for the first one when it closes. crew reads these rows from each CLI's own files, which are undocumented, so a field the CLI stops writing shows as an empty cell while the session stays in the list.
 
 ## Agent state
 
@@ -134,9 +145,11 @@ Claude Code instances report their state through hooks that crew injects through
 
 | Pill | Meaning | Clears when |
 |---|---|---|
-| `●` | The agent is working | It stops or asks |
+| `⠴` | The agent is working, shown as a spinner | It stops or asks |
 | `?` | The agent waits on you, for example a permission prompt | You answer |
 | `✓` | The agent finished | You visit its tab |
+
+The spinner only runs while some agent works. Set `icons.work` to a single string such as `"●"` for a still icon, or to your own list of frames.
 
 A waiting agent also blinks its pill and shows a notification when you are in another tab. Each hook runs a small Lua script that talks to Neovim through `$NVIM` and always exits cleanly, so a broken hook can never block Claude. agy agents show the same pills once `:Crew setup agy` has run (see [Adapters](#adapters)).
 
@@ -206,12 +219,14 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 :Crew jump N           :Crew toggle     :Crew close [N]
 :Crew rename [name]    :Crew editor     :Crew list
 :Crew close all        :Crew resume [profile]
-:Crew restore         :Crew setup agy [remove]
+:Crew restore          :Crew setup agy [remove]
 ```
 
 ### Restoring agents after a restart
 
 crew remembers the open agents of each directory and saves them on every change, so even a killed terminal keeps the list. When any session manager loads a session (persistence.nvim, the snacks dashboard "Restore Session", a plain `:source`), crew reopens them in the same order with the same names. `:Crew restore` does the same by hand. Claude agents resume their own conversation with `claude --resume <id>` and agy agents with `agy --conversation <id>`, while other agents start fresh. An agy agent saved before its id was known resumes the latest conversation agy recorded for its directory. `<leader>aX` closes every agent and forgets them, so they stay closed after a restart.
+
+Keeping agent tabs out of the saved session works with persistence.nvim only for now, through its `PersistenceSavePre` event. Another session manager saves the agent tabs as plain terminals, so a restored session shows those next to the agents crew reopens.
 
 crew expects one Neovim per directory, since all its agents live as tabs of that one instance. Two Neovim instances open in the same directory share one restore file, so the one that saves last decides what comes back.
 

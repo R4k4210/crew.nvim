@@ -141,6 +141,7 @@ local function remove(ws)
 	end
 	compact()
 	require("crew.state").update_blink()
+	require("crew.state").update_spin()
 	changed()
 	save()
 end

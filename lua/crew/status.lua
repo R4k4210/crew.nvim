@@ -123,7 +123,6 @@ function M.pills()
 	if #entries == 0 then
 		return {}
 	end
-	local icons = config.options.icons
 	local editor = table.remove(entries, 1)
 	local pills = { {
 		kind = "editor",
@@ -142,7 +141,7 @@ function M.pills()
 	end
 	for i = first, last do
 		local entry = entries[i]
-		local icon = entry.state and icons[entry.state]
+		local icon = require("crew.state").icon(entry.state)
 		pills[#pills + 1] = {
 			kind = "agent",
 			slot = entry.slot,

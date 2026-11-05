@@ -142,4 +142,4 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 ## Next step
 
-Tomorrow (2026-11-05): the small fix for the plain Claude that `S` restores (F1 first step), then the rest of F1 if wanted.
+Next session (after 2026-11-05): the user takes the README screenshots by hand, guided step by step for each one (editor.png, agent.png, picker.png, sessions.png). The rendered ones in PR #2 (tmux plus freeze, demo project) looked bad to the user and will be replaced on the same branch before merging. Also pending: drop the unused `docs/images/new.png` if the user agrees, note Codex as out of scope in `odd/tasks/adapters.md`.
