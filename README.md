@@ -143,9 +143,11 @@ Claude Code instances report their state through hooks that crew injects through
 
 | Pill | Meaning | Clears when |
 |---|---|---|
-| `●` | The agent is working | It stops or asks |
+| `⠋` | The agent is working, shown as a spinner | It stops or asks |
 | `?` | The agent waits on you, for example a permission prompt | You answer |
 | `✓` | The agent finished | You visit its tab |
+
+The spinner only runs while some agent works. Set `icons.work` to a single string such as `"●"` for a still icon, or to your own list of frames.
 
 A waiting agent also blinks its pill and shows a notification when you are in another tab. Each hook runs a small Lua script that talks to Neovim through `$NVIM` and always exits cleanly, so a broken hook can never block Claude. agy agents show the same pills once `:Crew setup agy` has run (see [Adapters](#adapters)).
 

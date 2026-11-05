@@ -93,7 +93,7 @@ function M.instance_row(entry, widths)
 			end
 		end
 	end
-	local icon = entry.state and config.options.icons[entry.state]
+	local icon = require("crew.state").icon(entry.state)
 	if icon then
 		chunks[#chunks + 1] = { icon, STATE_HL[entry.state] }
 	end

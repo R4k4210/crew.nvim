@@ -286,4 +286,40 @@ T["lualine component"] = function()
 	match(out, " 1 ", true)
 end
 
+T["spinner"] = MiniTest.new_set()
+
+local FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+
+-- Agent 1 works, agent 2 is current; returns the text of pill 1.
+local function working(opts)
+	setup(opts)
+	child.lua([[
+		ws.open(); ws.open()
+		state = require("crew.state")
+		state.spin_interval = 60000 -- frames advance only through spin_step here
+		state.report(ws.workspaces[1].id, "UserPromptSubmit", {})
+		pill = function() return status.pills()[2].text end -- [1] is the editor
+	]])
+end
+
+T["spinner"]["a working agent shows the first frame and steps through them"] = function()
+	working()
+	eq(child.lua_get("pill()"), " 1 " .. FRAMES[1] .. " ")
+	child.lua("state.spin_step()")
+	eq(child.lua_get("pill()"), " 1 " .. FRAMES[2] .. " ")
+	eq(child.lua_get("state.spinning()"), true)
+end
+
+T["spinner"]["stops when no agent works"] = function()
+	working()
+	child.lua('state.report(ws.workspaces[1].id, "Stop", {})')
+	eq(child.lua_get("state.spinning()"), false)
+end
+
+T["spinner"]["a string icon stays still and starts no timer"] = function()
+	working({ icons = { work = "●" } })
+	eq(child.lua_get("pill()"), " 1 ● ")
+	eq(child.lua_get("state.spinning()"), false)
+end
+
 return T
