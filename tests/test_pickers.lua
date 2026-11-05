@@ -255,4 +255,71 @@ T["sessions"]["warns and opens nothing when there are no sessions"] = function()
 	eq(child.lua_get("warned"), "crew: no sessions to resume in " .. child.lua_get("vim.fn.getcwd()"))
 end
 
+-- Profiles a and b each with one session; c shares a's config dir.
+local function merged_rows(pick, with_shared)
+	child.lua(
+		[[
+		local with_shared = ...
+		dir_a, dir_b = vim.fn.tempname(), vim.fn.tempname()
+		local agents = {
+			a = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_a }, hooks = false },
+			b = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_b }, hooks = false },
+		}
+		if with_shared then
+			agents.c = { cmd = { "claude" }, env = { CLAUDE_CONFIG_DIR = dir_a }, hooks = false }
+		end
+		require("crew").setup({ agents = agents, default_agent = "a" })
+		ws, picker, sessions = require("crew.workspace"), require("crew.picker"), require("crew.sessions")
+		started = {}
+		local jobstart = vim.fn.jobstart
+		vim.fn.jobstart = function(cmd, o)
+			started[#started + 1] = cmd
+			return jobstart({ "sh" }, o)
+		end
+		local function write(name, id, title, mtime)
+			local project = sessions.dir(require("crew.config").options.agents[name], vim.fn.getcwd())
+			vim.fn.mkdir(project, "p")
+			local path = project .. "/" .. id .. ".jsonl"
+			vim.fn.writefile({ vim.json.encode({ type = "ai-title", aiTitle = title }) }, path)
+			vim.uv.fs_utime(path, mtime, mtime)
+		end
+		local now = os.time()
+		write("a", "old", "From a", now - 60)
+		write("b", "new", "From b", now)
+	]],
+		{ with_shared or false }
+	)
+	child.lua(
+		[[
+		local pick = ...
+		vim.ui.select = function(items, opts, on_choice)
+			shown = vim.tbl_map(opts.format_item, items)
+			if pick then on_choice(items[pick]) end
+		end
+		picker.sessions()
+	]],
+		{ pick or false }
+	)
+	return child.lua_get("shown")
+end
+
+T["sessions"]["with no profile lists every profile, newest first, with a profile column"] = function()
+	local rows = merged_rows()
+	eq(#rows, 2)
+	match(rows[1], "^today %d%d:%d%d b +· +│ From b")
+	match(rows[2], "^today %d%d:%d%d a +· +│ From a")
+end
+
+T["sessions"]["enter resumes with the profile that owns the session"] = function()
+	merged_rows(1)
+	eq(child.lua_get("ws.current().agent"), "b")
+	eq(child.lua_get("started[1]"), { "claude", "--resume", "new" })
+end
+
+T["sessions"]["profiles sharing a config dir show a session once"] = function()
+	local rows = merged_rows(nil, true)
+	eq(#rows, 2)
+	match(rows[2], "^today %d%d:%d%d a +· +│ From a") -- the default profile wins
+end
+
 return T

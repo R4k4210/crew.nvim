@@ -207,10 +207,18 @@ end
 
 --- Open an agent that resumes an earlier session: with the profile's own
 --- resume args, else through crew's session picker when its adapter lists
---- sessions, else with the adapter's args for the CLI's own picker.
+--- sessions, else with the adapter's args for the CLI's own picker. With no
+--- name and several profiles that list sessions, one picker shows them all.
 ---@param name? string Agent profile, defaults to config.default_agent
 ---@return crew.Workspace?
 function M.resume(name)
+	if not name then
+		local profiles = require("crew.picker").session_profiles()
+		if #profiles > 1 then
+			return require("crew.picker").sessions()
+		end
+		name = profiles[1]
+	end
 	name = name or config.options.default_agent
 	local agent = config.options.agents[name]
 	if not agent or agent.resume then

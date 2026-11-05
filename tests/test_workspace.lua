@@ -129,6 +129,21 @@ T["resume"]["a claude profile opens the sessions picker"] = function()
 	eq(child.lua_get("vim.tbl_count(ws.workspaces)"), 0)
 end
 
+T["resume"]["several profiles with sessions open the merged picker"] = function()
+	child.lua([[require("crew").setup({ agents = {
+		sh = { cmd = { "sh" } },
+		a = { cmd = { "claude" }, hooks = false },
+		b = { cmd = { "agy" } },
+	} })]])
+	child.lua([[
+		ws = require("crew.workspace")
+		picked = "untouched"
+		require("crew.picker").sessions = function(name) picked = name end
+		ws.resume()
+	]])
+	eq(child.lua_get("picked"), vim.NIL)
+end
+
 T["resume"]["an explicit resume on a claude profile keeps its args"] = function()
 	child.lua([[require("crew").setup({ agents = { work = { cmd = { "claude" }, hooks = false, resume = { "--continue" } } } })]])
 	child.lua('ws = require("crew.workspace")')

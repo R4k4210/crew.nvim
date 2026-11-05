@@ -254,19 +254,38 @@ end
 --- has no sessions.
 ---@param name string Agent profile
 function M.sessions(name)
-	local agent = config.options.agents[name]
 	local cwd = vim.fn.getcwd()
-	local adapter = agent and require("crew.adapters").get(agent) or {}
-	local list = adapter.sessions and adapter.resume_args and adapter.sessions(agent, cwd) or {}
+	local names = name and { name } or M.session_profiles()
+	-- Profiles sharing a config dir see the same sessions: the first one in
+	-- names, the default profile first, keeps each id.
+	local list, seen = {}, {}
+	for _, profile in ipairs(names) do
+		local agent = config.options.agents[profile]
+		local adapter = agent and require("crew.adapters").get(agent) or {}
+		if adapter.sessions and adapter.resume_args then
+			for _, s in ipairs(adapter.sessions(agent, cwd)) do
+				local key = (adapter.name or "") .. ":" .. s.id
+				if not seen[key] then
+					seen[key] = true
+					list[#list + 1] = vim.tbl_extend("force", s, { profile = profile, adapter = adapter })
+				end
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.mtime > b.mtime
+	end)
 	if #list == 0 then
 		vim.notify(("crew: no sessions to resume in %s"):format(cwd), vim.log.levels.WARN)
 		return
 	end
-	local rows, widths = {}, { date = 1, branch = 1, title = 0 }
+	local with_profile = #names > 1
+	local rows, widths = {}, { date = 1, profile = 0, branch = 1, title = 0 }
 	for i, s in ipairs(list) do
 		local prompt = s.prompt and s.prompt:match("^[^\n]*") or ""
 		rows[i] = {
 			date = session_date(s.mtime),
+			profile = with_profile and s.profile or "",
 			branch = s.branch or "·",
 			title = truncate(s.title or "", 40),
 			prompt = truncate(prompt, 60),
@@ -279,17 +298,43 @@ function M.sessions(name)
 	for i, r in ipairs(rows) do
 		local chunks = {
 			{ pad(r.date, widths.date) .. " ", "Number" },
+		}
+		if with_profile then
+			chunks[#chunks + 1] = { pad(r.profile, widths.profile) .. " ", "Function" }
+		end
+		vim.list_extend(chunks, {
 			{ pad(r.branch, widths.branch), list[i].branch and "Function" or "Comment" },
 			{ " │ ", "Comment" },
 			{ pad(r.title, widths.title), "Normal" },
 			{ " │ ", "Comment" },
 			{ r.prompt, "Comment" },
-		}
-		items[i] = { text = plain(chunks), chunks = chunks, value = list[i].id }
+		})
+		items[i] = { text = plain(chunks), chunks = chunks, value = list[i] }
 	end
-	select("Crew sessions", items, function(id)
-		require("crew.workspace").open(name, adapter.resume_args(id))
+	select("Crew sessions", items, function(s)
+		require("crew.workspace").open(s.profile, s.adapter.resume_args(s.id))
 	end, { footer = M.hint({ { "enter", "resume" }, { "esc", "cancel" } }) })
+end
+
+--- Profiles whose adapter lists sessions, the default profile first, then
+--- by name. A profile with its own resume args keeps that path instead.
+---@return string[]
+function M.session_profiles()
+	local names = {}
+	for profile, agent in pairs(config.options.agents) do
+		local adapter = require("crew.adapters").get(agent)
+		if not agent.resume and adapter.sessions and adapter.resume_args then
+			names[#names + 1] = profile
+		end
+	end
+	local default = config.options.default_agent
+	table.sort(names, function(a, b)
+		if (a == default) ~= (b == default) then
+			return a == default
+		end
+		return a < b
+	end)
+	return names
 end
 
 --- Name the current instance. Empty clears it, cancel keeps it.

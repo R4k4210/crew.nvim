@@ -195,6 +195,10 @@ Sessions open in a running Claude process are left out, because a second
 process on the same conversation would end it for the first one when it
 closes.
 
+When several profiles list sessions, <leader>aN shows all of them in one
+picker with a profile column, and Enter resumes with the profile that owns
+the session. |:Crew| resume {profile} keeps to that one profile.
+
 ==============================================================================
 7. AGENT STATE AND USAGE                                          *crew-state*
 
