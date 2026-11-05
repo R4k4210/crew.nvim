@@ -23,20 +23,15 @@ local function forward()
 		ctx = type(data.context_window) == "table" and data.context_window.used_percentage or nil,
 		cwd = workspace.current_dir or data.cwd,
 	}
-	-- Quota maps bucket ids to { remaining_fraction, reset_time }. The docs
-	-- only show "gemini-weekly", so a bucket named weekly fills the week
-	-- limit and one named like hours fills the five hour one.
-	for name, bucket in pairs(type(data.quota) == "table" and data.quota or {}) do
-		local left = type(bucket) == "table" and tonumber(bucket.remaining_fraction)
-		if left then
-			local limit = { pct = (1 - left) * 100, resets_at = bucket.reset_time }
-			local key = name:lower()
-			if key:find("week") then
-				usage.seven_day = limit
-			elseif key:find("5h") or key:find("five") or key:find("hour") then
-				usage.five_hour = limit
-			end
-		end
+	-- Quota maps bucket ids to { remaining_fraction, reset_time }. Real runs
+	-- show two weekly buckets: "gemini-weekly" for Gemini models and
+	-- "3p-weekly" for third party ones, so the current model picks one.
+	local quota = type(data.quota) == "table" and data.quota or {}
+	local model = type(data.model) == "table" and tostring(data.model.id or "") or ""
+	local bucket = quota[model:lower():find("gemini", 1, true) and "gemini-weekly" or "3p-weekly"]
+	local left = type(bucket) == "table" and tonumber(bucket.remaining_fraction)
+	if left then
+		usage.seven_day = { pct = (1 - left) * 100, resets_at = bucket.reset_time }
 	end
 	local status = {
 		pending = data.tool_confirmation_pending == true,

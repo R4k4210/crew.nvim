@@ -238,9 +238,10 @@ to crew's state directory and puts crew's bridge in its place, keeping a
 timestamped backup of settings.json next to it. The bridge turns a pending
 tool confirmation into the waiting icon, forwards context, then runs your
 saved status line with the same input. Outside crew the hooks do nothing
-and the bridge only runs your status line. agy reports quota as buckets.
-A bucket named weekly, like `gemini-weekly`, fills the week limit. agy
-shows no five hour bucket in its docs, so that meter usually stays empty.
+and the bridge only runs your status line. agy has two weekly quotas,
+`gemini-weekly` for Gemini models and `3p-weekly` for third party ones,
+so the model in use picks the one shown as the week limit. agy has no
+five hour quota, so agy agents show no 5h meter.
 `:Crew setup agy remove` deletes the plugin and restores your status line.
 Restart agy after either command.
 
