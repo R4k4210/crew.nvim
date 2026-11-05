@@ -135,6 +135,8 @@ Names are optional labels you set with `<leader>ai`. They appear in the picker a
 
 `<leader>aN` lists the earlier sessions of the current directory, newest first, with their last activity, branch, title and last prompt. When several profiles can list sessions, they share one picker with a profile column where Enter resumes each session with the profile that owns it. `:Crew resume claude` keeps to a single profile.
 
+![The sessions picker with Claude and agy sessions](docs/images/sessions.png)
+
 Sessions already open are left out, because a second process on the same conversation would end it for the first one when it closes. crew reads these rows from each CLI's own files, which are undocumented, so a field the CLI stops writing shows as an empty cell while the session stays in the list.
 
 ## Agent state
