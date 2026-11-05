@@ -10,12 +10,27 @@ local M = {}
 ---@field sessions? fun(agent: crew.Agent, cwd: string): crew.Session[] Sessions of cwd for crew's picker, newest first
 ---@field last_session? fun(agent: crew.Agent, cwd: string): string? Latest session of cwd, for restoring an agent saved with no session id
 ---@field health? fun(agent: crew.Agent, report: crew.HealthReport) Extra :checkhealth lines for a profile
+---@field usage? crew.Meter[] Usage meters the CLI reports, in display order. None when nil
 
 ---@class crew.HealthReport
 ---@field ok fun(msg: string)
 ---@field info fun(msg: string)
 ---@field warn fun(msg: string, advice?: string[])
 ---@field error fun(msg: string, advice?: string[])
+
+---@alias crew.Meter "ctx"|"five_hour"|"seven_day"
+
+--- Usage meters a profile's CLI reports, as a set. Empty for plain CLIs, so
+--- crew never draws a meter that would always stay blank.
+---@param agent crew.Agent
+---@return table<crew.Meter, true>
+function M.meters(agent)
+	local set = {}
+	for _, meter in ipairs(M.get(agent).usage or {}) do
+		set[meter] = true
+	end
+	return set
+end
 
 --- Adapters detected from the basename of cmd[1].
 M.known = { claude = true, agy = true }

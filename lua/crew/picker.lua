@@ -59,17 +59,40 @@ local STATE_HL = { work = "CrewPillWork", ask = "CrewPillAsk", done = "CrewPillD
 ---@return crew.Chunk[]
 function M.instance_row(entry, widths)
 	local usage = entry.usage or {}
+	local own = require("crew.adapters").meters(config.options.agents[entry.agent] or {})
+	-- Columns any row of the list has; a row whose CLI lacks one leaves it blank.
+	local shown = widths.meters or own
 	local chunks = {
 		{ ("%d  "):format(entry.slot), "Number" },
 		{ pad(entry.agent, widths.agent) .. " ", "Function" },
 		entry.name and { pad(entry.name, widths.name), "Normal" } or { pad("·", widths.name), "Comment" },
-		{ " │ ctx ", "Comment" },
-		percent(usage.ctx),
-		{ " │ 5h ", "Comment" },
 	}
-	vim.list_extend(chunks, limit_cells(usage.five_hour, time_left, 8))
-	chunks[#chunks + 1] = { " wk ", "Comment" }
-	vim.list_extend(chunks, limit_cells(usage.seven_day, date, 14))
+	local cells = {
+		ctx = function()
+			return { { " │ ctx ", "Comment" }, percent(usage.ctx) }
+		end,
+		five_hour = function()
+			return vim.list_extend({ { " │ 5h ", "Comment" } }, limit_cells(usage.five_hour, time_left, 8))
+		end,
+		seven_day = function()
+			local label = shown.five_hour and " wk " or " │ wk "
+			return vim.list_extend({ { label, "Comment" } }, limit_cells(usage.seven_day, date, 14))
+		end,
+	}
+	for _, meter in ipairs({ "ctx", "five_hour", "seven_day" }) do
+		if shown[meter] then
+			local cell = cells[meter]()
+			if own[meter] then
+				vim.list_extend(chunks, cell)
+			else
+				local width = 0
+				for _, c in ipairs(cell) do
+					width = width + vim.fn.strdisplaywidth(c[1])
+				end
+				chunks[#chunks + 1] = { (" "):rep(width), "Comment" }
+			end
+		end
+	end
 	local icon = entry.state and config.options.icons[entry.state]
 	if icon then
 		chunks[#chunks + 1] = { icon, STATE_HL[entry.state] }
@@ -203,10 +226,12 @@ function M.instances(title, on_choice, footer)
 			selected = i
 		end
 	end
-	local widths = { agent = 1, name = 1 }
+	local widths = { agent = 1, name = 1, meters = {} }
 	for _, e in ipairs(entries) do
 		widths.agent = math.max(widths.agent, vim.fn.strdisplaywidth(e.agent))
 		widths.name = math.max(widths.name, vim.fn.strdisplaywidth(e.name or "·"))
+		local agent = config.options.agents[e.agent] or {}
+		widths.meters = vim.tbl_extend("keep", widths.meters, require("crew.adapters").meters(agent))
 	end
 	local items = vim.tbl_map(function(e)
 		local chunks = M.instance_row(e, widths)

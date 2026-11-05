@@ -26,6 +26,8 @@ end
 
 M.sessions = sessions.list
 
+M.usage = { "ctx", "five_hour", "seven_day" }
+
 function M.health(agent, report)
 	if agent.hooks ~= false then
 		local original = hooks.original_statusline(agent.cmd or {}, agent.env or {})

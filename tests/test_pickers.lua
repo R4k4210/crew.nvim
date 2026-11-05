@@ -6,7 +6,7 @@ local child, T = H.new()
 local function setup()
 	child.lua([[
 		vim.g.mapleader = " "
-		require("crew").setup({ agents = { sh = { cmd = { "sh" } }, zsh = { cmd = { "sh" } } }, default_agent = "sh" })
+		require("crew").setup({ agents = { sh = { adapter = "claude", cmd = { "sh" }, hooks = false }, zsh = { adapter = "claude", cmd = { "sh" }, hooks = false } }, default_agent = "sh" })
 		ws = require("crew.workspace")
 		picker = require("crew.picker")
 	]])
@@ -141,6 +141,38 @@ T["pick"]["row has its name and dashes for missing usage"] = function()
 	local row = pick_rows()[2]
 	match(row, "ops analysis", true)
 	match(row, "ctx    –", true)
+end
+
+T["pick"]["an agy row leaves the 5h cell blank and stays aligned"] = function()
+	child.lua([[
+		require("crew").setup({ agents = {
+			c = { adapter = "claude", cmd = { "sh" }, hooks = false },
+			g = { adapter = "agy", cmd = { "sh" } },
+		}, default_agent = "c" })
+		ws, picker = require("crew.workspace"), require("crew.picker")
+		ws.open("c"); ws.open("g"); ws.editor()
+		vim.ui.select = function(items, opts) shown = vim.tbl_map(opts.format_item, items) end
+		picker.pick()
+	]])
+	local rows = child.lua_get("shown")
+	match(rows[1], "5h", true)
+	eq(rows[2]:find("5h", 1, true), nil)
+	local function col(s, pat)
+		return vim.fn.strdisplaywidth(s:sub(1, s:find(pat, 1, true) - 1))
+	end
+	eq(col(rows[1], " wk"), col(rows[2], " wk"))
+end
+
+T["pick"]["only agy rows drop the 5h column"] = function()
+	child.lua([[
+		require("crew").setup({ agents = { g = { adapter = "agy", cmd = { "sh" } } } })
+		ws, picker = require("crew.workspace"), require("crew.picker")
+		ws.open("g"); ws.open("g"); ws.editor()
+		vim.ui.select = function(items, opts) shown = vim.tbl_map(opts.format_item, items) end
+		picker.pick()
+	]])
+	local rows = child.lua_get("shown")
+	match(rows[1], "^1  g +· │ ctx +– │ wk +–$")
 end
 
 T["pick"]["rows align"] = function()

@@ -7,6 +7,9 @@
 ---@type crew.Adapter
 local M = { name = "agy" }
 
+-- Its quota only has a weekly bucket, so there is no five hour meter.
+M.usage = { "ctx", "seven_day" }
+
 --- agy's data dir. Tests point it to a temp dir.
 M.data_dir = vim.fn.expand("~/.gemini/antigravity-cli")
 
