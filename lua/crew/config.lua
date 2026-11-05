@@ -71,8 +71,9 @@ M.defaults = {
 	editor = { label = "E" },
 	pills = { max = 5 },
 	icons = {
-		-- Braille spinner: it fills the cell height, so it sits centered in any font.
-		work = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" },
+		-- Three braille dots circling a gap, all in rows 2 and 3 of the 4 row
+		-- braille grid, so the spinner sits centered in the cell in any font.
+		work = { "⠴", "⠦", "⠖", "⠲" },
 		ask = "?",
 		done = "✓",
 	},

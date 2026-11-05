@@ -143,7 +143,7 @@ Claude Code instances report their state through hooks that crew injects through
 
 | Pill | Meaning | Clears when |
 |---|---|---|
-| `⠋` | The agent is working, shown as a spinner | It stops or asks |
+| `⠴` | The agent is working, shown as a spinner | It stops or asks |
 | `?` | The agent waits on you, for example a permission prompt | You answer |
 | `✓` | The agent finished | You visit its tab |
 

@@ -288,7 +288,7 @@ end
 
 T["spinner"] = MiniTest.new_set()
 
-local FRAMES = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local FRAMES = { "⠴", "⠦", "⠖", "⠲" }
 
 -- Agent 1 works, agent 2 is current; returns the text of pill 1.
 local function working(opts)

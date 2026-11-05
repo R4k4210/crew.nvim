@@ -102,7 +102,7 @@ pills                                                      *crew-opts-pills*
 icons                                                      *crew-opts-icons*
     Pill icons per state: `work`, `ask` ("?") and `done` ("✓"). `work`
     takes a list of frames that spin while the agent works (default a
-    braille spinner, "⠋" to "⠏") or a single string that stays still,
+    braille spinner, "⠴" "⠦" "⠖" "⠲") or a single string that stays still,
     for example `work = "●"`.
 
 ==============================================================================
@@ -218,7 +218,7 @@ For Claude Code agents, crew merges hooks and a status line into the
 `--settings` flag of the command. Your own settings.json is never touched,
 and a `--settings` you already pass keeps its content.
 
-  ⠋   working          spins, clears when the agent stops or asks
+  ⠴   working          spins, clears when the agent stops or asks
   ?   waiting on you   blinks and notifies while you are in another tab
   ✓   finished         clears when you visit its tab
 
