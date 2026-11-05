@@ -19,5 +19,5 @@ end
 pcall(vim.rpcrequest, chan, "nvim_exec_lua", [[
 	local ok, state = pcall(require, "crew.state")
 	if ok then state.report(...) end
-]], { id, event, { notification_type = payload.notification_type } })
+]], { id, event, { notification_type = payload.notification_type, session_id = payload.session_id } })
 vim.fn.chanclose(chan)

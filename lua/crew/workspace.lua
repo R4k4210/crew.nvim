@@ -11,6 +11,7 @@ local config = require("crew.config")
 ---@field buf integer Terminal buffer
 ---@field job integer Job id of the agent process
 ---@field state? crew.State Reported by the agent hooks (L5), nil until then
+---@field session_id? string Claude session id, reported by the hooks, nil until the first event
 ---@field name? string Label set by the user, shown in the picker and never in the pills
 ---@field usage? crew.Usage Reported by the statusLine script (L7), nil until then
 ---@field cwd? string Where the agent works, updated from its statusLine

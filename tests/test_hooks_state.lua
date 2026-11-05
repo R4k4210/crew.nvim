@@ -129,6 +129,33 @@ T["state"]["id survives compaction"] = function()
 	eq(child.lua_get("b.state"), "done")
 end
 
+T["state"]["keeps the latest Claude session id"] = function()
+	two_agents()
+	child.lua('state.report(a.id, "UserPromptSubmit", { session_id = "s1" })')
+	eq(child.lua_get("a.session_id"), "s1")
+	child.lua('state.report(a.id, "Stop", { session_id = "s2" })') -- after /clear
+	eq(child.lua_get("a.session_id"), "s2")
+	child.lua('state.report(a.id, "PostToolUse", {})')
+	child.lua('state.report(a.id, "PostToolUse", { session_id = 42 })')
+	child.lua('state.report(a.id, "PostToolUse", { session_id = "" })')
+	eq(child.lua_get("a.session_id"), "s2")
+	eq(child.lua_get("b.session_id"), vim.NIL)
+end
+
+T["state"]["hook.lua forwards the session id"] = function()
+	two_agents()
+	child.lua([[
+		done = false
+		vim.system(
+			{ vim.v.progpath, "--clean", "--headless", "-l", "scripts/hook.lua", "Stop" },
+			{ env = { NVIM = vim.v.servername, CREW_ID = tostring(a.id) }, stdin = '{"session_id":"abc"}' },
+			function() done = true end
+		)
+		vim.wait(5000, function() return done and a.session_id ~= nil end)
+	]])
+	eq(child.lua_get("a.session_id"), "abc")
+end
+
 T["agent env has CREW_ID and NVIM"] = function()
 	child.lua([[
 		out = vim.fn.tempname()

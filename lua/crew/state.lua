@@ -95,7 +95,12 @@ function M.report(id, event, payload)
 	if not ws then
 		return
 	end
-	local new = next_state(event, payload or {})
+	payload = payload or {}
+	-- Every event carries the current session, so /clear moves it forward.
+	if type(payload.session_id) == "string" and payload.session_id ~= "" then
+		ws.session_id = payload.session_id
+	end
+	local new = next_state(event, payload)
 	if new then
 		set(ws, new)
 	end
