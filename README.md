@@ -48,9 +48,17 @@ The snippet below installs crew with [lazy.nvim](https://github.com/folke/lazy.n
 
 Your `agents` table replaces the default one, so list every profile you want to pick from.
 
-### Claude Code only, for now
+### Adapters
 
-Any CLI runs as an agent in its own tab with numbers, pills, jumps and sending files, but several features read what Claude Code exposes and do nothing for other agents yet. The state icons, the usage feed and the sessions picker on `<leader>aN` only work with commands named `claude`. Another CLI can still resume through its own picker when its profile sets `resume`, for example `resume = { "resume" }` for Codex.
+Each profile runs through an adapter, picked from its `adapter` option or else from the name of its command, with `plain` for any CLI crew does not know. Every agent gets its own tab with numbers, pills, jumps and sending files, while the adapter decides what crew can read from the CLI.
+
+| Adapter | State pills | Usage | Resume | Sessions picker |
+|---|---|---|---|---|
+| `claude` | yes | yes | `--resume <id>` | yes |
+| `agy` | no | no | `--conversation <id>` | yes |
+| `plain` | no | no | no | no |
+
+A wrapper script around Claude Code keeps every Claude feature when its profile names the adapter, for example `work = { cmd = { "/opt/bin/my-claude-wrapper" }, adapter = "claude" }`. A `plain` CLI can still resume through its own picker when its profile sets `resume`, for example `resume = { "resume" }` for Codex. The `agy` sessions picker reads Antigravity's local conversation index and needs `sqlite3` on the PATH.
 
 ## Keys
 
