@@ -32,6 +32,8 @@ Out of scope: Codex and Gemini adapters (not installed, cannot be tested), state
 - [x] **A1 Contract and resolution.** `lua/crew/adapters/init.lua` resolves the adapter of a profile (explicit `adapter`, else basename, else `plain`). Contract fields, all optional: `prepare(cmd, agent, ws)` returns the final cmd and extra env (hooks, status line), `resume_args(id)` returns args for one session or, with nil, for the CLI's own picker, `sessions(agent, cwd)` lists sessions for crew's picker, `health(agent)` reports checks. Test first.
 - [x] **A2 Claude adapter.** `lua/crew/adapters/claude.lua` wraps `crew.hooks` and `crew.sessions`. `workspace`, `persist`, `picker` and `health` call the adapter; every `basename == "claude"` check goes away; the config dir is computed once. No behaviour change: the current suite stays green as is, plus adapter tests.
 - [x] **A3 Antigravity adapter.** `resume_args` uses `--conversation <id>` (verified in `agy --help`). `sessions` reads `conversation_summaries.db` (title, preview, workspace) if its schema checks out and `sqlite3` is available, else the adapter offers no picker and `<leader>aN` opens agy's own `/resume`. Verify the schema and paths locally before writing.
+- [ ] **A5 agy state and usage bridge.** Deferred by the user on 2026-11-05, next step after this PR. agy only reads its statusLine from global config; a crew bridge script set there once would forward `agent_state`, `tool_confirmation_pending`, `context_window.used_percentage` and `quota` to Neovim inside crew and chain the user script outside. Capture a real stdin sample first, the format is not fully documented.
+- [x] **A6 One picker for every profile.** Found by the user on 2026-11-05: with `agy` added and no `default_agent`, alphabetical order made agy the default, so `<leader>aN` hid Claude. Now several profiles with sessions share one picker with a profile column; shared config dirs dedupe by adapter and id. Route inline, test first (4 RED, then green), commit 76076d4. Checked against real data from `~/.config/nvim`: Claude and agy sessions side by side.
 - [x] **A4 Docs.** README section "Claude Code only, for now" becomes a table of adapters and capabilities; `:help crew` documents the `adapter` option.
 
 ## Acceptance criteria
@@ -55,4 +57,4 @@ Forecast about 500 authored changed lines (A1 plus A2 about 250, A3 about 200, A
 
 ## Next step
 
-Ready for the user to try an `agy` profile, then open the PR.
+Choose the PR base (one PR against main with all of feat/workspaces, or stacked), then open it. Also done on this branch: `statusline = false` profile option (9e28cd9).
