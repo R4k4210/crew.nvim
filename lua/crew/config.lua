@@ -3,6 +3,7 @@
 ---@field env? table<string, string> Extra environment variables for the agent
 ---@field adapter? string Adapter of the CLI (claude, agy, plain). Detected from the basename of cmd[1] when unset
 ---@field hooks? boolean Inject crew state hooks into claude commands (default true), false to opt out
+---@field statusline? boolean Show the user's own status line inside the agent (default true). False keeps crew's usage feed only
 ---@field resume? string[] Args appended to cmd to resume an earlier session. Overrides the adapter's own resume
 
 ---@class crew.Config

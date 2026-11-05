@@ -73,6 +73,10 @@ agents                                                    *crew-opts-agents*
               example `adapter = "claude"` on `/opt/bin/my-claude`
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
+      statusline
+              false to hide your own Claude status line inside crew
+              while the usage still reaches the pills (default true).
+              Outside Neovim claude keeps showing it
       resume  list of strings appended to cmd to resume an earlier
               session. Without it, claude and agy profiles open crew's
               session picker (|crew-pickers|) and plain ones cannot resume

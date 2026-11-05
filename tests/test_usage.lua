@@ -113,4 +113,15 @@ T["agent env has CREW_STATUSLINE"] = function()
 	eq(child.lua_get('vim.fn.readfile(out)[1] or ""'), "echo from-user")
 end
 
+T["statusline = false keeps the usage feed but hides the user's status line"] = function()
+	child.lua([[
+		require("crew").setup({ agents = { claude = { adapter = "claude", statusline = false, cmd = { "claude" } } } })
+		require("crew.hooks").original_statusline = function() return "echo from-user" end
+		cmd, env = require("crew.adapters.claude").prepare({ "claude" }, require("crew.config").options.agents.claude)
+		settings = vim.json.decode(cmd[vim.fn.index(cmd, "--settings") + 2])
+	]])
+	eq(child.lua_get("env == nil or env.CREW_STATUSLINE == nil"), true)
+	eq(child.lua_get("settings.statusLine ~= nil and settings.hooks ~= nil"), true)
+end
+
 return T

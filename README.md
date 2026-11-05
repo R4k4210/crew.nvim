@@ -144,7 +144,7 @@ Context, five hour and weekly usage come from the Claude Code status line, which
 
 Only one status line can run per Claude session, so crew chains yours. It finds your own `statusLine` in the agent `--settings` or in the `settings.json` of its config directory (respecting `CLAUDE_CONFIG_DIR`), runs it with the same input and prints its output. Your status bar inside Claude looks exactly as before.
 
-Set `hooks = false` on an agent to turn off both the state hooks and the usage feed for it.
+Set `hooks = false` on an agent to turn off both the state hooks and the usage feed for it. Set `statusline = false` instead to keep the usage feed while hiding your own status line inside crew, so the header and pills are the only place it shows. Claude keeps showing it outside Neovim since your `settings.json` is never touched.
 
 ## Pills and the agent header
 

@@ -7,12 +7,16 @@ local sessions = require("crew.sessions")
 local M = { name = "claude" }
 
 --- Merge crew's hooks into the command and chain the user's statusLine
---- through CREW_STATUSLINE. hooks = false leaves both untouched.
+--- through CREW_STATUSLINE. hooks = false leaves both untouched, while
+--- statusline = false keeps the usage feed and shows no status line.
 function M.prepare(cmd, agent)
 	if agent.hooks == false then
 		return cmd, nil
 	end
-	local env = { CREW_STATUSLINE = hooks.original_statusline(cmd, agent.env or {}) }
+	local env = nil
+	if agent.statusline ~= false then
+		env = { CREW_STATUSLINE = hooks.original_statusline(cmd, agent.env or {}) }
+	end
 	return hooks.merge(cmd), env
 end
 
