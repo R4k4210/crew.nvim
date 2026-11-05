@@ -2,6 +2,10 @@
 -- Only crew, mini.nvim (mini.test) and lualine.nvim are on the runtimepath.
 local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 
+-- Opening an agent saves crew's restore file under stdpath("state"). Keep
+-- every test run away from the user's real state directory.
+vim.env.XDG_STATE_HOME = vim.fn.tempname()
+
 vim.opt.rtp:prepend(root)
 
 local function dep(name, url)

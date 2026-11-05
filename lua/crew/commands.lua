@@ -28,6 +28,9 @@ local subcommands = {
 	toggle = function()
 		require("crew.workspace").toggle()
 	end,
+	restore = function()
+		require("crew.persist").restore()
+	end,
 	new = function()
 		require("crew.picker").new()
 	end,

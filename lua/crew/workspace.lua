@@ -35,6 +35,11 @@ local function changed()
 	vim.cmd.redrawstatus({ bang = true })
 end
 
+--- Save the open agents so they come back after a restart.
+local function save()
+	require("crew.persist").save()
+end
+
 ---@type table<integer, crew.Workspace>
 M.workspaces = {}
 ---@type integer? Tabpage of the editor
@@ -136,6 +141,7 @@ local function remove(ws)
 	compact()
 	require("crew.state").update_blink()
 	changed()
+	save()
 end
 
 --- Open a new agent workspace.
@@ -194,6 +200,7 @@ function M.open(name, args)
 	M.workspaces[slot] = ws
 	focus(ws)
 	changed()
+	save()
 	return ws
 end
 
@@ -255,8 +262,8 @@ function M.close(slot)
 	remove(ws)
 end
 
---- Close every agent and land in the editor. Silent, even with none open.
-function M.close_all()
+--- Close every agent and land in the editor.
+local function close_every()
 	-- Leave first, so no agent tab is current while the tabs go away.
 	M.editor()
 	for _, ws in ipairs(M.ordered()) do
@@ -264,13 +271,21 @@ function M.close_all()
 	end
 end
 
+--- Close every agent and forget them, so a restart does not bring them
+--- back. Silent, even with none open.
+function M.close_all()
+	close_every()
+	require("crew.persist").clear()
+end
+
 --- Called before a session file is written. On exit, close every agent so
 --- :mksession keeps editor files only; a restored session would otherwise
 --- reopen a bare agent terminal outside crew. A save mid session keeps them.
+--- The saved agents stay on disk, so the next start can restore them.
 ---@param exiting any v:exiting, vim.NIL until Neovim starts to quit
 function M.before_session_save(exiting)
 	if exiting ~= nil and exiting ~= vim.NIL then
-		M.close_all()
+		require("crew.persist").without_saving(close_every)
 	end
 end
 
@@ -286,6 +301,7 @@ function M.rename(name, slot)
 	name = name and vim.trim(name) or ""
 	ws.name = name ~= "" and name or nil
 	changed()
+	save()
 end
 
 --- Read the git branch of ws.cwd in the background. Sets ws.branch to the

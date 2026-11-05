@@ -9,7 +9,7 @@ vim.api.nvim_create_user_command("Crew", function(opts)
 	require("crew.commands").run(opts)
 end, {
 	nargs = "*",
-	desc = "crew.nvim: list | open [agent] | resume [agent] | jump N | editor | toggle | close [N] | config",
+	desc = "crew.nvim: list | open [agent] | resume [agent] | jump N | editor | toggle | close [N] | restore | config",
 	complete = function(arglead, cmdline)
 		return require("crew.commands").complete(arglead, cmdline)
 	end,
@@ -42,6 +42,18 @@ vim.api.nvim_create_autocmd("User", {
 	desc = "Close crew agents before persistence.nvim saves the session on exit",
 	callback = function()
 		require("crew.workspace").before_session_save(vim.v.exiting)
+	end,
+})
+
+-- Any session manager ends with :source, which fires SessionLoadPost.
+-- Wait for the session layout to settle, then reopen the saved agents.
+vim.api.nvim_create_autocmd("SessionLoadPost", {
+	group = group,
+	desc = "Reopen the crew agents saved for this directory",
+	callback = function()
+		vim.schedule(function()
+			require("crew.persist").restore()
+		end)
 	end,
 })
 

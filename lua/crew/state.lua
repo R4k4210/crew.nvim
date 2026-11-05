@@ -97,8 +97,9 @@ function M.report(id, event, payload)
 	end
 	payload = payload or {}
 	-- Every event carries the current session, so /clear moves it forward.
-	if type(payload.session_id) == "string" and payload.session_id ~= "" then
+	if type(payload.session_id) == "string" and payload.session_id ~= "" and payload.session_id ~= ws.session_id then
 		ws.session_id = payload.session_id
+		require("crew.persist").save()
 	end
 	local new = next_state(event, payload)
 	if new then

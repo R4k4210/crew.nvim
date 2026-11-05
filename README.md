@@ -196,7 +196,14 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 :Crew jump N           :Crew toggle     :Crew close [N]
 :Crew rename [name]    :Crew editor     :Crew list
 :Crew close all        :Crew resume [profile]
+:Crew restore
 ```
+
+### Restoring agents after a restart
+
+crew remembers the open agents of each directory and saves them on every change, so even a killed terminal keeps the list. When any session manager loads a session (persistence.nvim, the snacks dashboard "Restore Session", a plain `:source`), crew reopens them in the same order with the same names. `:Crew restore` does the same by hand. Claude agents resume their own conversation with `claude --resume <id>`, while other agents start fresh. `<leader>aX` closes every agent and forgets them, so they stay closed after a restart.
+
+crew expects one Neovim per directory, since all its agents live as tabs of that one instance. Two Neovim instances open in the same directory share one restore file, so the one that saves last decides what comes back.
 
 ## Status
 

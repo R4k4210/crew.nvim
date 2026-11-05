@@ -137,9 +137,19 @@ key that leaves terminal mode inside agent buffers, for example "jk".
 :Crew editor          Go to the editor.
 :Crew toggle          Go between the editor and the last agent.
 :Crew close [N]       Close agent N, or the current one.
-:Crew close all       Close every agent and go to the editor.
+:Crew close all       Close every agent, forget them and go to the editor.
 :Crew rename [name]   Name the current instance. Empty clears it.
+:Crew restore         Reopen the agents saved for this directory.
 :Crew config          Print the merged options.
+
+                                                               *crew-restore*
+crew remembers the open agents of each directory and saves them on every
+change, so even a killed terminal keeps the list. When any session manager
+loads a session, crew reopens them in the same order with the same names.
+`:Crew restore` does the same by hand and does nothing while agents are
+open. Claude agents resume their own conversation with `--resume`, while
+other agents start fresh. `<leader>aX` closes every agent and forgets them,
+so they stay closed after a restart.
 
 ==============================================================================
 6. PICKERS                                                      *crew-pickers*
