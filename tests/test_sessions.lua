@@ -48,6 +48,25 @@ T["list"]["returns {} when the project dir is missing"] = function()
 	eq(child.lua_get([[sessions.list(agent, "/nowhere")]]), {})
 end
 
+T["list"]["hides sessions open in a running Claude process"] = function()
+	setup()
+	child.lua([[
+		write("live", { rec({ type = "user" }) }, 3000)
+		write("stale", { rec({ type = "user" }) }, 2000)
+		write("closed", { rec({ type = "user" }) }, 1000)
+		local registry = config_dir .. "/sessions"
+		vim.fn.mkdir(registry, "p")
+		-- A finished process gives a pid that is surely dead.
+		local dead = vim.system({ "true" })
+		local dead_pid = dead.pid
+		dead:wait()
+		vim.fn.writefile({ vim.json.encode({ pid = tostring(vim.fn.getpid()), sessionId = "live" }) }, registry .. "/1.json")
+		vim.fn.writefile({ vim.json.encode({ pid = tostring(dead_pid), sessionId = "stale" }) }, registry .. "/2.json")
+		vim.fn.writefile({ "{broken" }, registry .. "/3.json")
+	]])
+	eq(child.lua_get([[vim.tbl_map(function(s) return s.id end, sessions.list(agent, cwd))]]), { "stale", "closed" })
+end
+
 T["list"]["sorts newest first with id and mtime"] = function()
 	setup()
 	child.lua([[

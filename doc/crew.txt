@@ -173,6 +173,10 @@ looks at the last 64 KB of each file. That format is undocumented, so a
 field Claude stops writing shows as an empty cell while the session stays
 in the list.
 
+Sessions open in a running Claude process are left out, because a second
+process on the same conversation would end it for the first one when it
+closes.
+
 ==============================================================================
 7. AGENT STATE AND USAGE                                          *crew-state*
 

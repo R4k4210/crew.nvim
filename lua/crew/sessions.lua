@@ -12,15 +12,41 @@ local TAIL = 64 * 1024 -- session files reach megabytes; the tail has what we ne
 ---@field title? string
 ---@field prompt? string
 
+--- The profile's CLAUDE_CONFIG_DIR, else the environment's, else ~/.claude.
+---@param agent crew.Agent
+---@return string
+local function config_dir(agent)
+	local env = agent.env or {}
+	return env.CLAUDE_CONFIG_DIR or vim.env.CLAUDE_CONFIG_DIR or vim.fn.expand("~/.claude")
+end
+
 --- Claude's project dir for cwd: the profile's CLAUDE_CONFIG_DIR, else the
 --- environment's, else ~/.claude, then every non alphanumeric char as "-".
 ---@param agent crew.Agent
 ---@param cwd string
 ---@return string
 function M.dir(agent, cwd)
-	local env = agent.env or {}
-	local config = env.CLAUDE_CONFIG_DIR or vim.env.CLAUDE_CONFIG_DIR or vim.fn.expand("~/.claude")
-	return config .. "/projects/" .. cwd:gsub("[^%w]", "-")
+	return config_dir(agent) .. "/projects/" .. cwd:gsub("[^%w]", "-")
+end
+
+--- Ids of the sessions open in a running Claude process, from
+--- <config>/sessions/<pid>.json. A file whose process is gone is skipped,
+--- since a crash can leave it behind.
+---@param agent crew.Agent
+---@return table<string, true>
+local function live(agent)
+	local dir = config_dir(agent) .. "/sessions"
+	local ids = {}
+	for file, kind in vim.fs.dir(dir) do
+		if kind == "file" and file:match("%.json$") then
+			local ok, rec = pcall(vim.json.decode, table.concat(vim.fn.readfile(dir .. "/" .. file), "\n"))
+			local pid = ok and type(rec) == "table" and tonumber(rec.pid)
+			if pid and type(rec.sessionId) == "string" and vim.uv.kill(pid, 0) == 0 then
+				ids[rec.sessionId] = true
+			end
+		end
+	end
+	return ids
 end
 
 --- The last TAIL bytes of a file, starting at a whole line.
@@ -69,14 +95,19 @@ local function read(path, session)
 end
 
 --- Sessions of cwd for a profile, newest first. {} when there are none.
+--- Sessions open elsewhere are left out: resuming one starts a second
+--- process on the same conversation, and closing it ends the session for
+--- the first one too (its SessionEnd hooks fire with the same id).
 ---@param agent crew.Agent
 ---@param cwd string
 ---@return crew.Session[]
 function M.list(agent, cwd)
 	local dir = M.dir(agent, cwd)
+	local open = live(agent)
 	local list = {}
 	for file, kind in vim.fs.dir(dir) do
 		local id = file:match("^(.+)%.jsonl$")
+		id = id and not open[id] and id or nil
 		local path = dir .. "/" .. file
 		local stat = id and kind == "file" and vim.uv.fs_stat(path)
 		if stat then
