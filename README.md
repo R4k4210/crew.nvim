@@ -28,7 +28,7 @@ Without snacks the pickers fall back to `vim.ui.select`, which keeps everything 
 
 ## Installation
 
-The snippet below installs crew with [lazy.nvim](https://github.com/folke/lazy.nvim) and two Claude profiles. Load it eagerly so the lualine component and the hooks are ready when Neovim starts.
+The snippet below installs crew with [lazy.nvim](https://github.com/folke/lazy.nvim), two Claude profiles and one agy profile. Load it eagerly so the lualine component and the hooks are ready when Neovim starts.
 
 ```lua
 {
@@ -41,12 +41,13 @@ The snippet below installs crew with [lazy.nvim](https://github.com/folke/lazy.n
         cmd = { "claude" },
         env = { CLAUDE_CONFIG_DIR = vim.fn.expand("~/.claude-work") },
       },
+      agy = { cmd = { "agy" } },
     },
   },
 }
 ```
 
-Your `agents` table replaces the default one, so list every profile you want to pick from.
+Your `agents` table replaces the default one, so list every profile you want to pick from. The agy profile shows its state and usage once you run `:Crew setup agy` (see [Adapters](#adapters)).
 
 ### Adapters
 
