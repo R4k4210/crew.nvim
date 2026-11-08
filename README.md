@@ -14,7 +14,7 @@ Agents are numbered from 1 and the editor stands apart as the `E` pill, which `<
 
 There is no limit on how many agents you open. Only five pills show at a time around the agent you are in, while a bare arrow, `‹` or `›`, marks the hidden ones on each side. Each arrow takes the color of the most urgent agent it hides, so an agent asking for input still blinks when it is out of view.
 
-![An agent tab asking for permission](docs/images/agent.png)
+![The editor showing that agent 3 needs input](docs/images/agent.png)
 
 ## Requirements
 
@@ -135,7 +135,7 @@ Names are optional labels you set with `<leader>ai`. They appear in the picker a
 
 `<leader>aN` lists the earlier sessions of the current directory, newest first, with their last activity, branch, title and last prompt. When several profiles can list sessions, they share one picker with a profile column where Enter resumes each session with the profile that owns it. `:Crew resume claude` keeps to a single profile.
 
-![The sessions picker with Claude and agy sessions](docs/images/sessions.png)
+![The sessions picker with Claude and agy sessions](docs/images/history.png)
 
 Sessions already open are left out, because a second process on the same conversation would end it for the first one when it closes. crew reads these rows from each CLI's own files, which are undocumented, so a field the CLI stops writing shows as an empty cell while the session stays in the list.
 
@@ -193,6 +193,8 @@ The pills are a native component. Place it after a `%=` split to center it.
 ```lua
 sections = { lualine_c = { "crew" } }
 ```
+
+![Workspace pills centered in lualine](docs/images/lualine.png)
 
 Lualine has no room for the agent header, so turn on `header = "winbar"` in the crew options. The header then shows at the top of each agent window, where a narrow window cuts the cwd before it cuts the agent name.
 
