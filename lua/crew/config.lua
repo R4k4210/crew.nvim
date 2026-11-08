@@ -22,7 +22,7 @@
 ---@field max integer Agent pills shown at once, the rest fold into markers. The editor pill does not count
 
 ---@class crew.Icons
----@field work string Agent is running a task
+---@field work string|string[] Agent is running a task. A list of frames spins while it works, a single string stays still
 ---@field ask string Agent waits on the user (permission prompt, question)
 ---@field done string Agent finished and the user has not looked yet
 
@@ -71,7 +71,9 @@ M.defaults = {
 	editor = { label = "E" },
 	pills = { max = 5 },
 	icons = {
-		work = "●",
+		-- Three braille dots circling a gap, all in rows 2 and 3 of the 4 row
+		-- braille grid, so the spinner sits centered in the cell in any font.
+		work = { "⠴", "⠦", "⠖", "⠲" },
 		ask = "?",
 		done = "✓",
 	},

@@ -39,6 +39,66 @@ function M.update_blink()
 	end
 end
 
+--- Milliseconds between spinner frames of a working agent.
+M.spin_interval = 120
+
+local spin_timer ---@type uv.uv_timer_t?
+local frame = 1
+
+---@return string[]? frames Nil when icons.work is a single still icon
+local function work_frames()
+	local work = require("crew.config").options.icons.work
+	return type(work) == "table" and #work > 1 and work or nil
+end
+
+---@return boolean
+local function someone_works()
+	for _, ws in pairs(require("crew.workspace").workspaces) do
+		if ws.state == "work" then
+			return true
+		end
+	end
+	return false
+end
+
+--- Pill icon of a state: the current spinner frame for work.
+---@param state? crew.State
+---@return string?
+function M.icon(state)
+	local icon = state and require("crew.config").options.icons[state]
+	if type(icon) == "table" then
+		return icon[(frame - 1) % #icon + 1]
+	end
+	return icon
+end
+
+--- Next spinner frame, then redraw the pills.
+function M.spin_step()
+	frame = frame + 1
+	vim.cmd.redrawtabline()
+	vim.cmd.redrawstatus({ bang = true })
+end
+
+---@return boolean
+function M.spinning()
+	return spin_timer ~= nil
+end
+
+--- Start or stop the spinner depending on whether an agent works.
+function M.update_spin()
+	if work_frames() and someone_works() then
+		if not spin_timer then
+			frame = 1
+			spin_timer = assert(vim.uv.new_timer())
+			spin_timer:start(M.spin_interval, M.spin_interval, vim.schedule_wrap(M.spin_step))
+		end
+	elseif spin_timer then
+		spin_timer:stop()
+		spin_timer:close()
+		spin_timer = nil
+	end
+end
+
 ---@param id integer
 ---@return crew.Workspace?
 local function find(id)
@@ -102,6 +162,7 @@ local function set(ws, new)
 		vim.notify(("%s needs input"):format(who), vim.log.levels.WARN, { title = "crew" })
 	end
 	M.update_blink()
+	M.update_spin()
 	vim.cmd.redrawtabline()
 	vim.cmd.redrawstatus({ bang = true })
 end
@@ -187,6 +248,7 @@ function M.seen()
 		set(ws, nil)
 	end
 	M.update_blink()
+	M.update_spin()
 end
 
 return M
