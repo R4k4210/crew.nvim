@@ -142,4 +142,4 @@ Each lesson leaves a working plugin and teaches one concept. Work happens togeth
 
 ## Next step
 
-Next session (after 2026-11-05): the user takes the README screenshots by hand, guided step by step for each one (editor.png, agent.png, picker.png, sessions.png). The rendered ones in PR #2 (tmux plus freeze, demo project) looked bad to the user and will be replaced on the same branch before merging. Also pending: drop the unused `docs/images/new.png` if the user agrees, note Codex as out of scope in `odd/tasks/adapters.md`.
+Next session (after 2026-11-05): the user takes the README screenshots by hand, guided step by step for each one (editor.png, agent.png, picker.png, history.png). The rendered ones in PR #2 (tmux plus freeze, demo project) looked bad to the user and will be replaced on the same branch before merging. Also pending: drop the unused `docs/images/new.png` if the user agrees, note Codex as out of scope in `odd/tasks/adapters.md`.
