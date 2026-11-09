@@ -104,6 +104,23 @@ local function linked(agent)
 	return vim.fs.basename(cmd[1] or "") == "pi" or vim.tbl_contains(cmd, "--link")
 end
 
+--- Pi's session root for a profile, and whether it is a flat custom dir.
+---@param agent crew.Agent
+---@return string root, boolean flat
+local function sessions_root(agent)
+	local custom = getenv(agent, "PI_CODING_AGENT_SESSION_DIR")
+	if custom then
+		return vim.fn.expand(custom), true
+	end
+	local home
+	if linked(agent) then
+		home = getenv(agent, "PI_CODING_AGENT_DIR") or "~/.pi/agent"
+	else
+		home = getenv(agent, "GENTLE_SHELL_HOME") or "~/.gentle-shell/agent"
+	end
+	return vim.fn.expand(home) .. "/sessions", false
+end
+
 --- Where Pi keeps the sessions of cwd for a profile. A custom session dir
 --- (PI_CODING_AGENT_SESSION_DIR) is flat, holding every cwd. Otherwise it is
 --- <agent dir>/sessions/--<cwd with / \\ : as ->--, where the agent dir is
@@ -113,18 +130,12 @@ end
 ---@param cwd string
 ---@return string
 function M.sessions_dir(agent, cwd)
-	local custom = getenv(agent, "PI_CODING_AGENT_SESSION_DIR")
-	if custom then
-		return vim.fn.expand(custom)
-	end
-	local home
-	if linked(agent) then
-		home = getenv(agent, "PI_CODING_AGENT_DIR") or "~/.pi/agent"
-	else
-		home = getenv(agent, "GENTLE_SHELL_HOME") or "~/.gentle-shell/agent"
+	local root, flat = sessions_root(agent)
+	if flat then
+		return root
 	end
 	local safe = cwd:gsub("^[/\\]", ""):gsub("[/\\:]", "-")
-	return vim.fn.expand(home) .. "/sessions/--" .. safe .. "--"
+	return root .. "/--" .. safe .. "--"
 end
 
 local CHUNK = 64 * 1024 -- session files reach megabytes; head and tail are enough
@@ -215,6 +226,17 @@ end
 function M.last_session(agent, cwd)
 	local s = M.sessions(agent, cwd)[1]
 	return s and s.id or nil
+end
+
+--- The status extension drives the pills, and the sessions dir tells which
+--- home (linked or isolated) the picker and restore read.
+function M.health(agent, report)
+	if vim.fn.filereadable(M.extension) == 1 then
+		report.ok("Pi status extension found: state pills and session ids")
+	else
+		report.error("Pi status extension not readable: " .. M.extension, { "reinstall crew.nvim" })
+	end
+	report.info(("sessions from %s"):format((sessions_root(agent))))
 end
 
 return M

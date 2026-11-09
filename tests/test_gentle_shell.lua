@@ -349,4 +349,25 @@ T["resume"]["opens crew's sessions picker and resumes the picked session"] = fun
 	eq(child.lua_get("started[1]"), { "gentle-shell", "--link", "--session", "s1", "-e", child.lua_get("gs.extension") })
 end
 
+T["health"] = MiniTest.new_set()
+
+local function health(agents)
+	clean_env()
+	child.lua('require("crew").setup(...)', { { agents = agents } })
+	child.cmd("checkhealth crew")
+	return table.concat(child.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+end
+
+T["health"]["reports the status extension and the agent home of each profile"] = function()
+	local report = health({ linked = { cmd = { "gentle-shell", "--link" } }, iso = { cmd = { "gentle-shell" } } })
+	match(report, "OK.-linked: Pi status extension")
+	match(report, "linked: sessions from [^\n]*/%.pi/agent/sessions")
+	match(report, "iso: sessions from [^\n]*/%.gentle%-shell/agent/sessions")
+end
+
+T["health"]["errors when the status extension is missing"] = function()
+	child.lua([[require("crew.adapters.gentle_shell").extension = "/nope/pi_status.js"]])
+	match(health({ gs = { cmd = { "gentle-shell" } } }), "ERROR.-gs: Pi status extension not readable")
+end
+
 return T
