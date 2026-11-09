@@ -30,7 +30,7 @@ Resume uses `--session <id>`, and `-r` opens Pi's own picker. Sessions are read 
 ## Tasks
 
 - [x] G1 Adapter skeleton: registration, `prepare` (session id plus `-e` extension plus env), `resume_args` (route: delegated writer, commit recorded under progress)
-- [ ] G2 Status extension script and wiring to `scripts/hook.lua` (route: delegated writer)
+- [x] G2 Status extension script and wiring to `scripts/hook.lua` (route: delegated writer, commit recorded under progress)
 - [ ] G3 Sessions listing and `last_session` from `~/.pi/agent/sessions/` (route: delegated writer)
 - [ ] G4 Health check, docs (README, `doc/crew.txt`, config comment) (route: delegated writer)
 
@@ -48,3 +48,5 @@ Resume uses `--session <id>`, and `-r` opens Pi's own picker. Sessions are read 
 ## Progress
 
 - Branch `feat/gentle-shell-adapter` created from `main`
+- G1 done in `407c849`: adapter registration, `prepare`, `resume_args`; `make test` 260 cases green
+- G2 done: `scripts/pi_status.js` maps Pi events to hook events, tested with a fake Pi and a fake nvim through node; `make test` 264 cases green

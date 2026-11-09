@@ -121,4 +121,96 @@ T["restore"]["reopens a gentle-shell agent on its saved session"] = function()
 	)
 end
 
+-- Run scripts/pi_status.js against a fake Pi and a fake nvim that records
+-- each hook call as "<event> <stdin json>" in a file of its own.
+local function run_extension(env, calls)
+	if vim.fn.executable("node") == 0 then
+		MiniTest.skip("node is not installed")
+	end
+	local dir = vim.fn.tempname()
+	local out = dir .. "/calls"
+	vim.fn.mkdir(out, "p")
+	vim.fn.writefile({ "#!/bin/sh", 'f="$OUT/$$"', 'printf "%s " "$5" > "$f.tmp"', 'cat >> "$f.tmp"', 'mv "$f.tmp" "$f"' }, dir .. "/nvim")
+	vim.fn.setfperm(dir .. "/nvim", "rwxr-xr-x")
+	vim.fn.writefile({
+		"const mod = await import(process.argv[2]);",
+		"const on = {};",
+		"mod.default({ on: (name, fn) => { on[name] = fn; } });",
+		'const ctx = { sessionManager: { getSessionId: () => "sid" } };',
+		"for (const [name, event] of JSON.parse(process.argv[3])) await on[name](event, ctx);",
+	}, dir .. "/harness.mjs")
+	local res = vim.system({ "node", dir .. "/harness.mjs", vim.fn.fnamemodify("scripts/pi_status.js", ":p"), vim.json.encode(calls) }, {
+		env = vim.tbl_extend("force", { OUT = out, CREW_HOOK_NVIM = dir .. "/nvim", CREW_HOOK_SCRIPT = "/x/hook.lua" }, env),
+	}):wait(5000)
+	eq(res.code, 0)
+	local function read()
+		local lines = {}
+		for name in vim.fs.dir(out) do
+			if not name:match("%.tmp$") then
+				lines[#lines + 1] = table.concat(vim.fn.readfile(out .. "/" .. name), "\n")
+			end
+		end
+		return lines
+	end
+	vim.wait(2000, function()
+		return #read() >= #calls
+	end, 20)
+	vim.uv.sleep(100) -- a stray extra call would land by now
+	return read()
+end
+
+local function parse(line)
+	local event, json = line:match("^(%S+) (.*)$")
+	return event, vim.json.decode(json)
+end
+
+T["extension"] = MiniTest.new_set()
+
+T["extension"]["is a readable file next to the hook helper"] = function()
+	load()
+	eq(vim.fn.filereadable(child.lua_get("gs.extension")), 1)
+end
+
+T["extension"]["maps Pi events onto crew's hook events with the session id"] = function()
+	local lines = run_extension({ NVIM = "/tmp/fake.sock", CREW_ID = "3" }, {
+		{ "agent_start", vim.empty_dict() },
+		{ "ui_prompt_start", { kind = "confirm", title = "Allow?" } },
+		{ "ui_prompt_end", vim.empty_dict() },
+		{ "agent_settled", { aborted = false } },
+		{ "session_start", { reason = "new" } },
+	})
+	table.sort(lines) -- calls run detached, so their order is not fixed
+	local got = {}
+	for _, line in ipairs(lines) do
+		local event, payload = parse(line)
+		got[#got + 1] = { event, payload }
+	end
+	eq(got, {
+		{ "Notification", { session_id = "sid", notification_type = "confirm" } },
+		{ "PostToolUse", { session_id = "sid" } },
+		{ "SessionStart", { session_id = "sid" } },
+		{ "Stop", { session_id = "sid" } },
+		{ "UserPromptSubmit", { session_id = "sid" } },
+	})
+end
+
+T["extension"]["does nothing outside a crew agent"] = function()
+	eq(run_extension({ NVIM = "", CREW_ID = "" }, { { "agent_start", vim.empty_dict() } }), {})
+end
+
+T["state"] = MiniTest.new_set()
+
+T["state"]["SessionStart moves the session id and keeps the state"] = function()
+	child.lua([[require("crew").setup({ agents = { gs = { cmd = { "gentle-shell" } } } })]])
+	capture()
+	child.lua([[
+		ws = require("crew.workspace").open()
+		state = require("crew.state")
+		state.report(ws.id, "UserPromptSubmit", {})
+		state.report(ws.id, "SessionStart", { session_id = "next" })
+	]])
+	eq(child.lua_get("ws.session_id"), "next")
+	eq(child.lua_get("ws.state"), "work")
+end
+
 return T
