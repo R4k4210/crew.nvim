@@ -213,4 +213,140 @@ T["state"]["SessionStart moves the session id and keeps the state"] = function()
 	eq(child.lua_get("ws.state"), "work")
 end
 
+-- Write a Pi session file under dir, made `age` seconds ago.
+local function session(dir, file, lines, age)
+	child.lua(
+		[[
+		local dir, file, lines, age = ...
+		vim.fn.mkdir(dir, "p")
+		vim.fn.writefile(vim.tbl_map(vim.json.encode, lines), dir .. "/" .. file)
+		local t = os.time() - age
+		vim.uv.fs_utime(dir .. "/" .. file, t, t)
+	]],
+		{ dir, file, lines, age }
+	)
+end
+
+local function header(id, cwd)
+	return { type = "session", version = 3, id = id, timestamp = "2026-11-01T10:00:00.000Z", cwd = cwd }
+end
+
+local function user(text)
+	return { type = "message", id = "u1", parentId = vim.NIL, timestamp = "2026-11-01T10:00:01.000Z", message = { role = "user", content = text } }
+end
+
+-- Clear Pi and Gentle Shell env overrides, so defaults show.
+local function clean_env()
+	child.lua([[
+		for _, k in ipairs({ "PI_CODING_AGENT_DIR", "PI_CODING_AGENT_SESSION_DIR", "GENTLE_SHELL_HOME" }) do
+			vim.env[k] = nil
+		end
+	]])
+end
+
+T["sessions_dir"] = MiniTest.new_set()
+
+T["sessions_dir"]["uses ~/.pi/agent with --link or pi, else the isolated ~/.gentle-shell/agent"] = function()
+	load()
+	clean_env()
+	local home = vim.fn.expand("~")
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "gentle-shell", "--link" } }, "/work/My Dir")]]), home .. "/.pi/agent/sessions/--work-My Dir--")
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "pi" } }, "/work")]]), home .. "/.pi/agent/sessions/--work--")
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "gentle-shell" } }, "/work")]]), home .. "/.gentle-shell/agent/sessions/--work--")
+end
+
+T["sessions_dir"]["honors the profile env, then Neovim's env"] = function()
+	load()
+	clean_env()
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "gentle-shell", "--link" }, env = { PI_CODING_AGENT_DIR = "/p" } }, "/w")]]), "/p/sessions/--w--")
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "gentle-shell" }, env = { GENTLE_SHELL_HOME = "/g" } }, "/w")]]), "/g/sessions/--w--")
+	child.lua([[vim.env.PI_CODING_AGENT_DIR = "/envp"]])
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "pi" } }, "/w")]]), "/envp/sessions/--w--")
+	-- A custom session dir holds the sessions of every cwd, flat.
+	eq(child.lua_get([[gs.sessions_dir({ cmd = { "gentle-shell" }, env = { PI_CODING_AGENT_SESSION_DIR = "/s" } }, "/w")]]), "/s")
+end
+
+T["sessions"] = MiniTest.new_set()
+
+-- A linked and an isolated profile, each with its own temp agent dir.
+local function homes()
+	load()
+	clean_env()
+	child.lua([[
+		pihome, gshome = vim.fn.tempname(), vim.fn.tempname()
+		linked = { cmd = { "gentle-shell", "--link" }, env = { PI_CODING_AGENT_DIR = pihome } }
+		isolated = { cmd = { "gentle-shell" }, env = { GENTLE_SHELL_HOME = gshome } }
+	]])
+	return child.lua_get("pihome"), child.lua_get("gshome")
+end
+
+T["sessions"]["lists the sessions of cwd newest first with name and last prompt"] = function()
+	local pihome = homes()
+	local dir = pihome .. "/sessions/--work-My Dir--"
+	session(dir, "2026-11-01T10-00-00-000Z_old.jsonl", { header("old", "/work/My Dir"), user("first prompt") }, 300)
+	session(dir, "2026-11-02T10-00-00-000Z_new.jsonl", {
+		header("new", "/work/My Dir"),
+		user("hello"),
+		{ type = "message", id = "u2", parentId = "u1", timestamp = "x", message = { role = "user", content = { { type = "text", text = "latest" } } } },
+		{ type = "session_info", id = "i1", parentId = "u2", timestamp = "x", name = "Refactor auth" },
+	}, 10)
+	session(dir, "notes.txt", { "x" }, 0)
+	local list = child.lua_get([[gs.sessions(linked, "/work/My Dir")]])
+	eq(vim.tbl_map(function(s)
+		return { s.id, s.title or false, s.prompt }
+	end, list), { { "new", "Refactor auth", "latest" }, { "old", false, "first prompt" } })
+	eq(list[1].mtime > list[2].mtime, true)
+	eq(child.lua_get([[gs.last_session(linked, "/work/My Dir")]]), "new")
+end
+
+T["sessions"]["reads the isolated home of a profile without --link"] = function()
+	local pihome, gshome = homes()
+	session(gshome .. "/sessions/--work--", "t_iso.jsonl", { header("iso", "/work") }, 0)
+	session(pihome .. "/sessions/--work--", "t_linked.jsonl", { header("linked", "/work") }, 0)
+	eq(child.lua_get([[gs.last_session(isolated, "/work")]]), "iso")
+	eq(child.lua_get([[gs.last_session(linked, "/work")]]), "linked")
+end
+
+T["sessions"]["filters a flat custom session dir by the header cwd"] = function()
+	load()
+	child.lua([[sdir = vim.fn.tempname(); flat = { cmd = { "pi" }, env = { PI_CODING_AGENT_SESSION_DIR = sdir } }]])
+	local sdir = child.lua_get("sdir")
+	session(sdir, "a_here.jsonl", { header("here", "/work") }, 10)
+	session(sdir, "b_there.jsonl", { header("there", "/else") }, 0)
+	eq(vim.tbl_map(function(s)
+		return s.id
+	end, child.lua_get([[gs.sessions(flat, "/work")]])), { "here" })
+end
+
+T["sessions"]["degrades to {} and nil on missing dirs and odd files"] = function()
+	local pihome = homes()
+	eq(child.lua_get([[gs.sessions(linked, "/nowhere")]]), {})
+	eq(child.lua_get([[gs.last_session(linked, "/nowhere")]]), vim.NIL)
+	local dir = pihome .. "/sessions/--work--"
+	session(dir, "t_broken.jsonl", { "not json" }, 0)
+	child.lua([[vim.fn.writefile({ "{oops", "[1,2]" }, ...)]], { dir .. "/t_garbage.jsonl" })
+	child.lua([[vim.fn.writefile({}, ...)]], { dir .. "/t_empty.jsonl" })
+	local ids = vim.tbl_map(function(s)
+		return s.id
+	end, child.lua_get([[gs.sessions(linked, "/work")]]))
+	table.sort(ids)
+	-- No header: the id comes from the file name, after the timestamp.
+	eq(ids, { "broken", "empty", "garbage" })
+end
+
+T["resume"] = MiniTest.new_set()
+
+T["resume"]["opens crew's sessions picker and resumes the picked session"] = function()
+	local pihome = homes()
+	session(pihome .. "/sessions/--work--", "t_s1.jsonl", { header("s1", "/work") }, 0)
+	child.lua([[require("crew").setup({ agents = { gs = linked } })]])
+	capture()
+	child.lua([[
+		vim.fn.getcwd = function() return "/work" end
+		vim.ui.select = function(items, opts, on_choice) on_choice(items[1]) end
+		require("crew.workspace").resume("gs")
+	]])
+	eq(child.lua_get("started[1]"), { "gentle-shell", "--link", "--session", "s1", "-e", child.lua_get("gs.extension") })
+end
+
 return T
