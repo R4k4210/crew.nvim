@@ -57,6 +57,7 @@ Each profile runs through an adapter, picked from its `adapter` option or else f
 |---|---|---|---|---|
 | `claude` | yes | yes | `--resume <id>` | yes |
 | `agy` | yes, after `:Crew setup agy` | context and week, after `:Crew setup agy` | `--conversation <id>` | yes |
+| `gentle_shell` | yes | no | `--session <id>` | yes |
 | `plain` | no | no | no | no |
 
 A wrapper script around Claude Code keeps every Claude feature when its profile names the adapter, for example `work = { cmd = { "/opt/bin/my-claude-wrapper" }, adapter = "claude" }`. A `plain` CLI can still resume through its own picker when its profile sets `resume`, for example `resume = { "resume" }` for Codex. The `agy` sessions picker reads Antigravity's local conversation index and needs `sqlite3` on the PATH.
@@ -64,6 +65,19 @@ A wrapper script around Claude Code keeps every Claude feature when its profile 
 agy has no per invocation settings flag, so `:Crew setup agy` plugs crew into its global config once. It installs a hooks plugin under `~/.gemini/config/plugins/crew` for the work and done states and the conversation id, then sets crew's bridge as the `statusLine` in `~/.gemini/antigravity-cli/settings.json` for the ask state and context. Your own status line is saved first and the bridge keeps running it, so agy looks the same inside and outside Neovim. Outside crew both pieces do nothing else. A timestamped backup of `settings.json` stays next to it, while `:Crew setup agy remove` puts your status line back. agy has two weekly quotas, `gemini-weekly` for Gemini models and `3p-weekly` for third party ones, so the model in use picks the one shown as the week limit. agy has no five hour quota, so agy agents show no 5h meter. Restart agy after either command.
 
 agy reports no state while it waits on you, so crew watches the agent terminal for the footer agy draws under its questions and permission prompts (`enter Select · esc Skip`). While that footer is on screen the agent shows `?` until you answer.
+
+Gentle Shell profiles need no setup, because Gentle Shell forwards every extra argument to Pi. The adapter starts each fresh agent with its own `--session-id` and loads crew's Pi extension (`scripts/pi_status.js`) with `-e`, which reports when Pi starts working, waits on a dialog and settles, so the pills move without touching your Pi config. A command named `gentle-shell` or `pi` picks this adapter on its own. The profile decides which home the sessions picker and restore read from.
+
+```lua
+agents = {
+  -- Gentle Shell on your own Pi home, sessions under ~/.pi/agent/sessions
+  pi = { cmd = { "gentle-shell", "--link" } },
+  -- Gentle Shell on its isolated home, sessions under ~/.gentle-shell/agent/sessions
+  gentle = { cmd = { "gentle-shell" } },
+}
+```
+
+`PI_CODING_AGENT_SESSION_DIR` in the profile `env` or in Neovim's environment overrides both, as do `PI_CODING_AGENT_DIR` for the linked home and `GENTLE_SHELL_HOME` for the isolated one. Pi reports no usage that crew can read, so these agents show no meters.
 
 ## Keys
 
@@ -227,7 +241,7 @@ Everything the keys do is also available as a subcommand of `:Crew`, which helps
 
 ### Restoring agents after a restart
 
-crew remembers the open agents of each directory and saves them on every change, so even a killed terminal keeps the list. When any session manager loads a session (persistence.nvim, the snacks dashboard "Restore Session", a plain `:source`), crew reopens them in the same order with the same names. `:Crew restore` does the same by hand. Claude agents resume their own conversation with `claude --resume <id>` and agy agents with `agy --conversation <id>`, while other agents start fresh. An agy agent saved before its id was known resumes the latest conversation agy recorded for its directory. `<leader>aX` closes every agent and forgets them, so they stay closed after a restart.
+crew remembers the open agents of each directory and saves them on every change, so even a killed terminal keeps the list. When any session manager loads a session (persistence.nvim, the snacks dashboard "Restore Session", a plain `:source`), crew reopens them in the same order with the same names. `:Crew restore` does the same by hand. Claude agents resume their own conversation with `claude --resume <id>`, agy agents with `agy --conversation <id>` and Gentle Shell agents with `--session <id>`, while other agents start fresh. An agy agent saved before its id was known resumes the latest conversation agy recorded for its directory. `<leader>aX` closes every agent and forgets them, so they stay closed after a restart.
 
 Keeping agent tabs out of the saved session works with persistence.nvim only for now, through its `PersistenceSavePre` event. Another session manager saves the agent tabs as plain terminals, so a restored session shows those next to the agents crew reopens.
 

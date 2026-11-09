@@ -33,8 +33,10 @@ function M.meters(agent)
 	return set
 end
 
---- Adapters detected from the basename of cmd[1].
-M.known = { claude = true, agy = true }
+--- Adapters detected from the basename of cmd[1]: true loads the adapter of
+--- the same name, a string names the adapter module.
+---@type table<string, true|string>
+M.known = { claude = true, agy = true, ["gentle-shell"] = "gentle_shell", pi = "gentle_shell" }
 
 local warned = {}
 
@@ -65,7 +67,8 @@ function M.get(agent)
 		end
 	else
 		local base = vim.fs.basename((agent.cmd or {})[1] or "")
-		local adapter = M.known[base] and load(base)
+		local known = M.known[base]
+		local adapter = known and load(known == true and base or known)
 		if adapter then
 			return adapter
 		end
