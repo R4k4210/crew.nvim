@@ -55,3 +55,4 @@ Resume uses `--session <id>`, and `-r` opens Pi's own picker. Sessions are read 
 - G3 committed in `4f21c13`
 - G4 health check committed in `8e03b14`; docs commit follows it; `make test` 273 cases green
 - Next step: live check inside Gentle Shell (pills move through work, ask and done; restore after a restart)
+- Live check: idle screens such as `/gentle:profiles` fire `ui_prompt_*`, which showed ask and then left the tab spinning; fixed by reporting prompts only during a turn (RED then GREEN, `make test` 274 cases green)

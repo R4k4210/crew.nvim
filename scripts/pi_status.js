@@ -5,6 +5,7 @@
 //   agent_start      -> UserPromptSubmit (work)
 //   ui_prompt_start  -> Notification     (ask), notification_type = prompt kind
 //   ui_prompt_end    -> PostToolUse      (work)
+//   (both ui_prompt events only during a turn; idle screens are ignored)
 //   agent_settled    -> Stop             (done)
 //   session_start    -> SessionStart     (only moves the session id)
 //
@@ -40,11 +41,23 @@ function report(event, ctx, extra = {}) {
 }
 
 export default function (pi) {
-	pi.on("agent_start", async (_event, ctx) => report("UserPromptSubmit", ctx));
-	pi.on("ui_prompt_start", async (event, ctx) =>
-		report("Notification", ctx, { notification_type: typeof event?.kind === "string" ? event.kind : "ui_prompt" }),
-	);
-	pi.on("ui_prompt_end", async (_event, ctx) => report("PostToolUse", ctx));
-	pi.on("agent_settled", async (_event, ctx) => report("Stop", ctx));
+	// ui_prompt_* also fires for screens the user opens while idle, such as
+	// /gentle:profiles. Only a prompt inside a turn is the agent asking.
+	let running = false;
+	pi.on("agent_start", async (_event, ctx) => {
+		running = true;
+		report("UserPromptSubmit", ctx);
+	});
+	pi.on("ui_prompt_start", async (event, ctx) => {
+		if (!running) return;
+		report("Notification", ctx, { notification_type: typeof event?.kind === "string" ? event.kind : "ui_prompt" });
+	});
+	pi.on("ui_prompt_end", async (_event, ctx) => {
+		if (running) report("PostToolUse", ctx);
+	});
+	pi.on("agent_settled", async (_event, ctx) => {
+		running = false;
+		report("Stop", ctx);
+	});
 	pi.on("session_start", async (_event, ctx) => report("SessionStart", ctx));
 }

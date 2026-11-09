@@ -194,6 +194,23 @@ T["extension"]["maps Pi events onto crew's hook events with the session id"] = f
 	})
 end
 
+T["extension"]["ignores extension screens opened while idle"] = function()
+	-- /gentle:profiles and similar screens fire ui_prompt_* outside a turn;
+	-- they must not show ask, nor leave the tab working once closed.
+	local lines = run_extension({ NVIM = "/tmp/fake.sock", CREW_ID = "3" }, {
+		{ "agent_start", vim.empty_dict() },
+		{ "agent_settled", { aborted = false } },
+		{ "ui_prompt_start", { kind = "custom" } },
+		{ "ui_prompt_end", vim.empty_dict() },
+	})
+	table.sort(lines)
+	local got = {}
+	for _, line in ipairs(lines) do
+		got[#got + 1] = (parse(line))
+	end
+	eq(got, { "Stop", "UserPromptSubmit" })
+end
+
 T["extension"]["does nothing outside a crew agent"] = function()
 	eq(run_extension({ NVIM = "", CREW_ID = "" }, { { "agent_start", vim.empty_dict() } }), {})
 end
