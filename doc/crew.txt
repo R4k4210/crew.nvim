@@ -36,6 +36,9 @@ its command, else `plain`:
   claude  state icons, usage feed, `--resume <id>` and the sessions picker
   agy     `--conversation <id>` and the sessions picker, plus state icons
           and context after |:Crew| setup agy (see |crew-agy|)
+  gentle_shell
+          Gentle Shell and Pi: state icons, `--session <id>` and the
+          sessions picker, with no setup (see |crew-gentle-shell|)
   plain   tabs, pills, jumps and sending only. It resumes through the
           CLI's own picker when its profile sets `resume`
 
@@ -69,8 +72,9 @@ agents                                                    *crew-opts-agents*
     Each profile takes:
       cmd     list of strings, the command that starts the agent
       env     table of extra environment variables
-      adapter "claude", "agy" or "plain". Detected from the name of
-              cmd[1] when unset, so set it for a wrapper script, for
+      adapter "claude", "agy", "gentle_shell" or "plain". Detected from
+              the name of cmd[1] when unset (`gentle-shell` and `pi`
+              pick "gentle_shell"), so set it for a wrapper script, for
               example `adapter = "claude"` on `/opt/bin/my-claude`
       hooks   false to stop crew from injecting its Claude Code hooks and
               status line into this agent (default true)
@@ -79,8 +83,9 @@ agents                                                    *crew-opts-agents*
               crew while the usage still reaches the pills (default
               true). Outside Neovim the CLI keeps showing it
       resume  list of strings appended to cmd to resume an earlier
-              session. Without it, claude and agy profiles open crew's
-              session picker (|crew-pickers|) and plain ones cannot resume
+              session. Without it, claude, agy and gentle_shell profiles
+              open crew's session picker (|crew-pickers|) and plain ones
+              cannot resume
 
 default_agent                                      *crew-opts-default_agent*
     Profile opened when none is given. Defaults to "claude", or to the first
@@ -166,11 +171,12 @@ crew remembers the open agents of each directory and saves them on every
 change, so even a killed terminal keeps the list. When any session manager
 loads a session, crew reopens them in the same order with the same names.
 `:Crew restore` does the same by hand and does nothing while agents are
-open. Claude agents resume their own conversation with `--resume` and agy
-agents with `--conversation`, while other agents start fresh. An agy agent
-saved with no id resumes the latest conversation agy recorded for its
-directory. `<leader>aX` closes every agent and forgets them,
-so they stay closed after a restart.
+open. Claude agents resume their own conversation with `--resume`, agy
+agents with `--conversation` and Gentle Shell agents with `--session`,
+while other agents start fresh. An agy or Gentle Shell agent saved with no
+id resumes the latest conversation recorded for its directory.
+`<leader>aX` closes every agent and forgets them, so they stay closed after
+a restart.
 
 ==============================================================================
 6. PICKERS                                                      *crew-pickers*
@@ -184,15 +190,15 @@ its context, five hour and weekly usage. The cursor starts on the last
 visited instance, so Enter picks the usual one. Names live only in the
 picker and the header, never in the pills.
 
-The sessions picker opens on <leader>aN and |:Crew| resume for claude and
-agy profiles without a `resume` option. It lists the Claude sessions of the
-current directory, newest first, with their last activity, git branch,
-title and last prompt. Enter opens a new instance with `--resume <id>`.
-crew reads these rows from Claude's internal session files under the
-profile's config directory ($CLAUDE_CONFIG_DIR, default ~/.claude) and only
-looks at the last 64 KB of each file. That format is undocumented, so a
-field Claude stops writing shows as an empty cell while the session stays
-in the list.
+The sessions picker opens on <leader>aN and |:Crew| resume for claude, agy
+and gentle_shell profiles without a `resume` option. It lists the Claude
+sessions of the current directory, newest first, with their last activity,
+git branch, title and last prompt. Enter opens a new instance with
+`--resume <id>`. crew reads these rows from Claude's internal session files
+under the profile's config directory ($CLAUDE_CONFIG_DIR, default
+~/.claude) and only looks at the last 64 KB of each file. That format is
+undocumented, so a field Claude stops writing shows as an empty cell while
+the session stays in the list.
 
 For agy profiles the same picker lists Antigravity's conversations of the
 current directory with their last activity, title and last prompt, read
@@ -200,6 +206,12 @@ through `sqlite3` from ~/.gemini/antigravity-cli/conversation_summaries.db.
 Enter opens a new instance with `--conversation <id>`. Without `sqlite3`
 or the database the list is empty and crew warns that there is nothing
 to resume.
+
+For Gentle Shell profiles the picker lists Pi's sessions of the current
+directory with their last activity, session name and last prompt. crew
+reads them from the session files of the profile's home (see
+|crew-gentle-shell|) and opens the picked one with `--session <id>`. A file
+crew cannot parse still shows by its id, so nothing raises.
 
 Sessions already open in a crew agent of this Neovim are left out, for
 every adapter. Sessions open in a running Claude process are left out too,
@@ -250,6 +262,22 @@ under its questions and permission prompts ("enter Select · esc Skip").
 While it shows, the agent waits on you.
 `:Crew setup agy remove` deletes the plugin and restores your status line.
 Restart agy after either command.
+
+                                                         *crew-gentle-shell*
+Gentle Shell profiles work with no setup, since Gentle Shell forwards every
+extra argument to Pi. crew starts a fresh agent with its own `--session-id`
+so the tab owns its session from the start, then loads its Pi extension
+scripts/pi_status.js with `-e`. The extension reports a started run as
+working, a dialog from Pi as waiting on you and a settled run as finished,
+through the same helper as the Claude hooks. Outside crew it does nothing.
+
+The profile picks the home that the sessions picker and restore read:
+  `gentle-shell --link` and `pi`   ~/.pi/agent/sessions
+  `gentle-shell`                   ~/.gentle-shell/agent/sessions
+$PI_CODING_AGENT_SESSION_DIR in the profile `env` or the environment
+overrides both, as do $PI_CODING_AGENT_DIR for the linked home and
+$GENTLE_SHELL_HOME for the isolated one. Pi reports no usage that crew can
+read, so these agents show no meters.
 
 ==============================================================================
 8. PILLS AND HEADER                                               *crew-pills*

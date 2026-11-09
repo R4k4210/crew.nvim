@@ -32,7 +32,7 @@ Resume uses `--session <id>`, and `-r` opens Pi's own picker. Sessions are read 
 - [x] G1 Adapter skeleton: registration, `prepare` (session id plus `-e` extension plus env), `resume_args` (route: delegated writer, commit recorded under progress)
 - [x] G2 Status extension script and wiring to `scripts/hook.lua` (route: delegated writer, commit recorded under progress)
 - [x] G3 Sessions listing and `last_session` from the linked `~/.pi/agent` or isolated `~/.gentle-shell/agent` home (route: delegated writer, commit recorded under progress)
-- [ ] G4 Health check, docs (README, `doc/crew.txt`, config comment) (route: delegated writer)
+- [x] G4 Health check, docs (README, `doc/crew.txt`, config comment) (route: delegated writer, commits recorded under progress)
 
 ## Acceptance criteria
 
@@ -52,3 +52,6 @@ Resume uses `--session <id>`, and `-r` opens Pi's own picker. Sessions are read 
 - G2 done: `scripts/pi_status.js` maps Pi events to hook events, tested with a fake Pi and a fake nvim through node; `make test` 264 cases green
 - G2 committed in `7572391`
 - G3 done: sessions resolve the agent home from the profile (`--link` or `pi` use `~/.pi/agent`, else `~/.gentle-shell/agent`), honoring `PI_CODING_AGENT_SESSION_DIR`, `PI_CODING_AGENT_DIR` and `GENTLE_SHELL_HOME`; smoke read of real sessions listed 2; `make test` 271 cases green
+- G3 committed in `4f21c13`
+- G4 health check committed in `8e03b14`; docs commit follows it; `make test` 273 cases green
+- Next step: live check inside Gentle Shell (pills move through work, ask and done; restore after a restart)
